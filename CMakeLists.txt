@@ -1,22 +1,14 @@
 cmake_minimum_required(VERSION 3.6)
 
+project(pkgj)
+
 if(NOT HOST_BUILD)
-  # must be done before project()
-  if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-    if(DEFINED ENV{VITASDK})
-      set(CMAKE_TOOLCHAIN_FILE "$ENV{VITASDK}/share/vita.toolchain.cmake" CACHE PATH "toolchain file")
-    else()
-      message(FATAL_ERROR "Please define VITASDK to point to your SDK path!")
-    endif()
+  if(NOT BUILD_VITA)
+    message(FATAL_ERROR "Vita toolchain not imported, fix the conan recipe")
   endif()
 
   include("$ENV{VITASDK}/share/vita.cmake" REQUIRED)
 endif()
-
-project(pkgj)
-
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-conan_basic_setup(TARGETS)
 
 # useful for memory alignment constraints
 set(CMAKE_CXX_STANDARD 17)
@@ -34,6 +26,11 @@ endif()
 add_definitions(-DPKGI_VERSION="${VITA_VERSION}" -D_GNU_SOURCE)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -fvisibility=hidden")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -fvisibility=hidden")
+
+find_package(fmt REQUIRED)
+find_package(Boost REQUIRED)
+find_package(cereal REQUIRED)
+find_package(libzip REQUIRED)
 
 if(HOST_BUILD)
   include(host.cmake)

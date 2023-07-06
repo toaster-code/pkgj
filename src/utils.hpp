@@ -4,6 +4,7 @@
 
 #include <array>
 #include <cstdint>
+#include <vector>
 
 #ifdef _MSC_VER
 #define GCC_ALIGN(n)

@@ -1,0 +1,9 @@
+{
+    "version": 4,
+    "vendor": {
+        "conan": {}
+    },
+    "include": [
+        "/home/blastrock/work/pkgj/ci/conan-libzip/test_package/build/gcc-12-x86_64-gnu17-release/generators/CMakePresets.json"
+    ]
+}

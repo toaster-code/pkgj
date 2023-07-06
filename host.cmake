@@ -1,3 +1,5 @@
+find_package(SQLite3 REQUIRED)
+
 add_executable(pkgj_cli
   src/comppackdb.cpp
   src/db.cpp
@@ -16,10 +18,9 @@ add_executable(pkgj_cli
 )
 
 target_link_libraries(pkgj_cli
-  CONAN_PKG::fmt
-  CONAN_PKG::boost_scope_exit
-  CONAN_PKG::boost_algorithm
-  CONAN_PKG::sqlite3
-  CONAN_PKG::cereal
-  CONAN_PKG::libzip
+  fmt::fmt
+  Boost::headers
+  SQLite::SQLite3
+  cereal::cereal
+  libzip::zip
 )

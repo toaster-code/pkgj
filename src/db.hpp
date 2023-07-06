@@ -73,6 +73,7 @@ enum GameRegion
     RegionEUR,
     RegionJPN,
     RegionUSA,
+    RegionINT,
     RegionUnknown,
 };
 

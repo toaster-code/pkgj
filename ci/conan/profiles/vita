@@ -1,15 +1,9 @@
-[build_requires]
+[tool_requires]
 vitasdk-toolchain/1207@blastrock/pkgj
 
 [settings]
-os_build=Linux
-arch_build=x86_64
 os=PSVita
 arch=armv7
 compiler=gcc
 compiler.version=10.1
 compiler.libcxx=libstdc++11
-
-[options]
-[scopes]
-[env]
