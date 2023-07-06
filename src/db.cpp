@@ -577,7 +577,6 @@ GameRegion pkgi_get_region(const std::string& titleid) {
         case ID('N', 'P', 'J', 'J'): // PS1
         case ID('N', 'P', 'J', 'G'): // PSP
         case ID('N', 'P', 'J', 'H'): // PSP
-        case ID('N', 'P', 'J', 'J'): // PSP
         case ID('U', 'C', 'J', 'B'): // PSP
         case ID('U', 'C', 'J', 'M'): // PSP
         case ID('U', 'C', 'J', 'S'): // PSP
@@ -591,7 +590,6 @@ GameRegion pkgi_get_region(const std::string& titleid) {
         case ID('N', 'P', 'U', 'F'): // PS1
         case ID('N', 'P', 'U', 'I'): // PS1
         case ID('N', 'P', 'U', 'J'): // PS1
-        case ID('N', 'P', 'U', 'F'): // PSP
         case ID('N', 'P', 'U', 'G'): // PSP
         case ID('N', 'P', 'U', 'H'): // PSP
         case ID('N', 'P', 'U', 'X'): // PSP
