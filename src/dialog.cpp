@@ -145,7 +145,7 @@ void pkgi_do_dialog()
     if (local_type == DialogQuestion)
     {
         ImGui::Separator();
-        for (auto const response : responses)
+        for (auto const& response : responses)
         {
             if (ImGui::Button(
                         response.text.c_str(),

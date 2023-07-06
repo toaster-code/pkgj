@@ -45,7 +45,6 @@ void pkgi_extract_zip(const std::string& zip_file, const std::string& dest)
         if (path[path.size() - 1] == '/')
         {
             LOGF("creating directory {}", path);
-            path.substr(0, path.size() - 1);
             pkgi_mkdirs((dest + '/' + path).c_str());
         }
         else
