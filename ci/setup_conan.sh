@@ -12,13 +12,17 @@ if ! [[ -e $HOME/.conan2/profiles/vita ]] ; then
   cp -f conan/profiles/vita $HOME/.conan2/profiles
 fi
 
-if [[ -e $HOME/.conan2/settings.yml ]]; then
+if [[ "x$CI" != xtrue ]]; then
   if ! grep PSVita $HOME/.conan2/settings.yml ; then
     echo "Your ~/.conan2/settings.yml does not contain PSVita, you must update it manually with ci/conan2/settings.yml"
     exit 1
   fi
 else
   cp conan/settings.yml $HOME/.conan2/settings.yml
+fi
+
+if ! [[ -e $HOME/.conan2/profiles/default ]] ; then
+  poetry run conan profile detect
 fi
 
 poetry run conan export conan-vitasdk
