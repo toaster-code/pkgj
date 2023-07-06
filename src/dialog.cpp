@@ -134,8 +134,7 @@ void pkgi_do_dialog()
                     ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
                     ImGuiWindowFlags_NoScrollWithMouse |
                     ImGuiWindowFlags_NoCollapse |
-                    ImGuiWindowFlags_NoSavedSettings |
-                    ImGuiWindowFlags_NoInputs);
+                    ImGuiWindowFlags_NoSavedSettings);
     ImGui::PushTextWrapPos(0.f);
     if (local_type == DialogError)
         ImGui::TextColored(

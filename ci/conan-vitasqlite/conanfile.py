@@ -8,7 +8,7 @@ from conan.tools import files
 
 class SqliteConan(ConanFile):
     name = "vitasqlite"
-    version = "0.0.1"
+    version = "0.0.2"
     settings = "os", "compiler", "build_type", "arch"
     exports_sources = "temp-support.patch"
     user = "blastrock"
@@ -16,16 +16,13 @@ class SqliteConan(ConanFile):
 
     def source(self):
         source_url = "https://github.com/VitaSmith/libsqlite"
-        commit = "7bf41a937d0358a1f0740950b30e8444ca8beea0"
+        commit = "9d524c1186f0343735f027a22fb7ed864587a2d8"
         self.run("git clone %s" % source_url)
         self.run("git checkout %s" % commit, cwd="libsqlite")
-        files.patch(
-            self, base_path="libsqlite", patch_file="temp-support.patch", strip=0
-        )
 
         files.download(
             self,
-            "https://www.sqlite.org/2018/sqlite-amalgamation-3230100.zip",
+            "https://sqlite.org/2023/sqlite-amalgamation-3420000.zip",
             "sqlite.zip",
         )
         files.unzip(self, "sqlite.zip")
@@ -44,7 +41,7 @@ class SqliteConan(ConanFile):
         files.copy(
             self,
             "sqlite3.h",
-            src="sqlite-amalgamation-3230100",
+            src="sqlite-amalgamation-3420000",
             dst=os.path.join(self.package_folder, "include"),
             keep_path=False,
         )

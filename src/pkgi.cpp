@@ -19,7 +19,6 @@ extern "C"
 #include "utils.hpp"
 #include "vitahttp.hpp"
 #include "zrif.hpp"
-#include <imgui_internal.h>
 
 #include <vita2d.h>
 
@@ -1110,10 +1109,10 @@ int main()
         if (!config.no_version_check)
             start_update_thread();
 
-        const auto imgui_context = ImGui::CreateContext();
-        // Force enabling of navigation
-        imgui_context->NavDisableHighlight = false;
+        ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO();
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+        io.BackendFlags |= ImGuiBackendFlags_HasGamepad;
 
         // Build and load the texture atlas into a texture
         uint32_t* pixels = NULL;
@@ -1154,16 +1153,11 @@ int main()
 
             if (gameview || pkgi_dialog_is_open())
             {
-                if (input.pressed & PKGI_BUTTON_UP)
-                    io.NavInputs[ImGuiNavInput_DpadUp] = 1.0f;
-                if (input.pressed & PKGI_BUTTON_DOWN)
-                    io.NavInputs[ImGuiNavInput_DpadDown] = 1.0f;
-                if (input.pressed & PKGI_BUTTON_LEFT)
-                    io.NavInputs[ImGuiNavInput_DpadLeft] = 1.0f;
-                if (input.pressed & PKGI_BUTTON_RIGHT)
-                    io.NavInputs[ImGuiNavInput_DpadRight] = 1.0f;
-                if (input.pressed & pkgi_ok_button())
-                    io.NavInputs[ImGuiNavInput_Activate] = 1.0f;
+                io.AddKeyEvent(ImGuiKey_GamepadDpadUp, input.pressed & PKGI_BUTTON_UP);
+                io.AddKeyEvent(ImGuiKey_GamepadDpadDown, input.pressed & PKGI_BUTTON_DOWN);
+                io.AddKeyEvent(ImGuiKey_GamepadDpadLeft, input.pressed & PKGI_BUTTON_LEFT);
+                io.AddKeyEvent(ImGuiKey_GamepadDpadRight, input.pressed & PKGI_BUTTON_RIGHT);
+                io.AddKeyEvent(ImGuiKey_GamepadFaceDown, input.pressed & pkgi_ok_button());
                 if (input.pressed & pkgi_cancel_button() && gameview)
                     gameview->close();
 

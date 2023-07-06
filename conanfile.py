@@ -8,14 +8,14 @@ class PkgjConan(ConanFile):
 
     def requirements(self):
         if self.settings.os == "PSVita":
-            self.requires("vitasqlite/0.0.1@blastrock/pkgj")
-            self.requires("imgui/1.85")
+            self.requires("vitasqlite/0.0.2@blastrock/pkgj")
+            self.requires("imgui/1.89.4")
         else:
             self.requires("sqlite3/3.42.0")
 
-        self.requires("boost/1.71.0")
-        self.requires("libzip/1.7.3@blastrock/pkgj")
-        self.requires("fmt/5.3.0")
+        self.requires("boost/1.82.0")
+        self.requires("libzip/1.9.2@blastrock/pkgj")
+        self.requires("fmt/10.0.0")
         self.requires("cereal/1.3.2")
 
     def generate(self):

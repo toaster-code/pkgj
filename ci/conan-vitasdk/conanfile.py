@@ -6,7 +6,7 @@ from conan.tools import files
 
 class VitasdkToolchainConan(ConanFile):
     name = "vitasdk-toolchain"
-    lib_version = "1207"
+    lib_version = "2.498"
     package_version = ""
     exports_sources = "cmake-toolchain.patch"
     version = "%s%s" % (lib_version, package_version)
@@ -17,12 +17,17 @@ class VitasdkToolchainConan(ConanFile):
     def source(self):
         files.download(
             self,
-            "https://github.com/vitasdk/autobuilds/releases/download/master-linux-v1207/vitasdk-x86_64-linux-gnu-2020-09-11_14-42-25.tar.bz2",
+            "https://github.com/vitasdk/autobuilds/releases/download/master-linux-v2.498/vitasdk-x86_64-linux-gnu-2023-06-24_13-24-41.tar.bz2",
             filename="vitasdk.tar.bz2",
         )
         files.unzip(self, "vitasdk.tar.bz2")
 
-        additional_libs = ["libvita2d", "libpng", "libjpeg-turbo", "taihen", "zlib"]
+        additional_libs = [
+            "libvita2d",
+            "libpng",
+            "libjpeg-turbo",
+            "taihen",
+        ]
         for lib in additional_libs:
             lib = "{}.tar.xz".format(lib)
             files.download(self, "http://dl.vitasdk.org/{}".format(lib), filename=lib)

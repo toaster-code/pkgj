@@ -370,7 +370,7 @@ bool lower(const DbItem& a, const DbItem& b, DbSort sort, DbSortOrder order)
     else if (sort == SortByDate)
         cmp = a.date.compare(b.date);
     else
-        throw std::runtime_error(fmt::format("unknown sort order {}", sort));
+        throw std::runtime_error(fmt::format("unknown sort order {}", (int)sort));
 
     if (cmp == 0)
         cmp = a.titleid.compare(b.titleid);

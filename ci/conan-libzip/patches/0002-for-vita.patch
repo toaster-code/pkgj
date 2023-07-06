@@ -1,28 +1,13 @@
-diff --git a/lib/zip_mkstempm.c b/lib/zip_mkstempm.c
-index c1afade..42a3765 100644
---- a/lib/zip_mkstempm.c
-+++ b/lib/zip_mkstempm.c
-@@ -80,10 +80,6 @@ _zip_mkstempm(char *path, int mode) {
- 	}
- 
- 	if ((fd = open(path, O_CREAT | O_EXCL | O_RDWR | O_CLOEXEC, mode == -1 ? 0666 : (mode_t)mode)) >= 0) {
--	    if (mode != -1) {
--		/* open() honors umask(), which we don't want in this case */
--		(void)chmod(path, (mode_t)mode);
--	    }
- 	    return fd;
- 	}
- 	if (errno != EEXIST) {
 diff --git a/lib/zip_random_unix.c b/lib/zip_random_unix.c
-index 1d0c967..20b099a 100644
+index f84a548..5537956 100644
 --- a/lib/zip_random_unix.c
 +++ b/lib/zip_random_unix.c
 @@ -94,10 +94,10 @@ zip_random_uint32(void) {
      }
  
      if (!seeded) {
--	srandom((unsigned int)time(NULL));
-+	srand((unsigned int)time(NULL));
+-        srandom((unsigned int)time(NULL));
++        srand((unsigned int)time(NULL));
      }
  
 -    return (zip_uint32_t)random();
@@ -30,3 +15,22 @@ index 1d0c967..20b099a 100644
  }
  #endif
  
+diff --git a/lib/zip_source_file_stdio_named.c b/lib/zip_source_file_stdio_named.c
+index 92ae344..7ffbbfe 100644
+--- a/lib/zip_source_file_stdio_named.c
++++ b/lib/zip_source_file_stdio_named.c
+@@ -325,14 +325,6 @@ static int create_temp_file(zip_source_file_context_t *ctx, bool create_file) {
+         
+         if (create_file) {
+             if ((fd = open(temp, O_CREAT | O_EXCL | O_RDWR | O_CLOEXEC, mode == -1 ? 0666 : (mode_t)mode)) >= 0) {
+-                if (mode != -1) {
+-                    /* open() honors umask(), which we don't want in this case */
+-#ifdef HAVE_FCHMOD
+-                    (void)fchmod(fd, (mode_t)mode);
+-#else
+-                    (void)chmod(temp, (mode_t)mode);
+-#endif
+-                }
+                 break;
+             }
+             if (errno != EEXIST) {

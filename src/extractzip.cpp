@@ -7,6 +7,12 @@
 
 #include <boost/scope_exit.hpp>
 
+#if __arm__
+extern const char _ctype_[];
+// For some reason bzip2 needs this, and it isn't defined by the toolchain
+const char* __ctype_ptr__ = _ctype_;
+#endif
+
 void pkgi_extract_zip(const std::string& zip_file, const std::string& dest)
 {
     int err;

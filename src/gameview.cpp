@@ -48,8 +48,7 @@ void GameView::render()
                     ImGuiWindowFlags_NoScrollbar |
                     ImGuiWindowFlags_NoScrollWithMouse |
                     ImGuiWindowFlags_NoCollapse |
-                    ImGuiWindowFlags_NoSavedSettings |
-                    ImGuiWindowFlags_NoInputs);
+                    ImGuiWindowFlags_NoSavedSettings);
 
     ImGui::PushTextWrapPos(_image_fetcher.get_texture() == nullptr ?
         0.f : GameViewWidth - 300.f);
