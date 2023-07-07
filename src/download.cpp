@@ -516,7 +516,8 @@ int Download::download_head(const uint8_t* rif)
     download_data(head.data(), head.size(), 0, 1);
 
     if (get32be(head.data()) != 0x7F504B47 ||
-        get32be(head.data() + PKG_HEADER_SIZE) != 0x7F657874) // this check breaks pkg type1
+        get32be(head.data() + PKG_HEADER_SIZE) !=
+                0x7F657874) // this check breaks pkg type1
     {
         throw DownloadError("wrong pkg header");
     }
@@ -950,8 +951,9 @@ int Download::download_files(void)
                 continue;
             }
         }
-        else if (content_type == CONTENT_TYPE_PSM_GAME
-                || content_type == CONTENT_TYPE_PSM_GAME_ALT)
+        else if (
+                content_type == CONTENT_TYPE_PSM_GAME ||
+                content_type == CONTENT_TYPE_PSM_GAME_ALT)
         {
             // skip "contents/" prefix
             std::string pre = "contents/";
@@ -1110,7 +1112,6 @@ int Download::create_stat()
     LOG("stat.bin created");
     return 1;
 }
-
 
 int Download::create_rif(const uint8_t* rif)
 {

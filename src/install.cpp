@@ -132,7 +132,8 @@ CompPackVersion pkgi_get_comppack_versions(const std::string& titleid)
 
     const bool present = pkgi_file_exists(dir.c_str());
 
-    const auto base = [&] {
+    const auto base = [&]
+    {
         try
         {
             const auto data = pkgi_load(dir + "/base_comppack_version");
@@ -145,7 +146,8 @@ CompPackVersion pkgi_get_comppack_versions(const std::string& titleid)
             return std::string{};
         }
     }();
-    const auto patch = [&] {
+    const auto patch = [&]
+    {
         try
         {
             const auto data = pkgi_load(dir + "/patch_comppack_version");
@@ -180,16 +182,18 @@ void pkgi_install_psmgame(const char* contentid)
     ScePromoterUtilityImportParams promote_args;
     memset(&promote_args, 0, sizeof(promote_args));
 
-    strncpy(promote_args.path, base.c_str(), sizeof(promote_args.path)-1);
-    strncpy(promote_args.titleid, titleid.c_str(), sizeof(promote_args.titleid)-1);
+    strncpy(promote_args.path, base.c_str(), sizeof(promote_args.path) - 1);
+    strncpy(promote_args.titleid,
+            titleid.c_str(),
+            sizeof(promote_args.titleid) - 1);
     promote_args.type = SCE_PKG_TYPE_PSM;
     promote_args.attribute = 0x1;
 
     res = scePromoterUtilityPromoteImport(&promote_args);
     if (res < 0)
         throw formatEx<std::runtime_error>(
-            "scePromoterUtilityPromoteImport failed: {:#08x}",
-            static_cast<uint32_t>(res));
+                "scePromoterUtilityPromoteImport failed: {:#08x}",
+                static_cast<uint32_t>(res));
 }
 
 void pkgi_install_pspgame(const char* partition, const char* contentid)

@@ -8,7 +8,7 @@
 class ImageFetcher
 {
 public:
-    ImageFetcher(DbItem *item);
+    ImageFetcher(DbItem* item);
     ~ImageFetcher();
 
     vita2d_texture* get_texture();

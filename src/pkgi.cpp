@@ -254,11 +254,9 @@ void pkgi_refresh_thread(void)
 
 const char* pkgi_get_mode_partition()
 {
-    return mode == ModePspGames
-        || mode == ModePspDlcs
-        || mode == ModePsxGames
-    ? config.install_psp_psx_location.c_str()
-    : "ux0:";
+    return mode == ModePspGames || mode == ModePspDlcs || mode == ModePsxGames
+                   ? config.install_psp_psx_location.c_str()
+                   : "ux0:";
 }
 
 void pkgi_refresh_installed_packages()
@@ -679,15 +677,14 @@ void pkgi_do_main(Downloader& downloader, pkgi_input* input)
         input->pressed &= ~PKGI_BUTTON_T;
 
         config_temp = config;
-        int allow_refresh =
-                !config.games_url.empty() << 0 |
-                !config.dlcs_url.empty() << 1 |
-                !config.demos_url.empty() << 6 |
-                !config.themes_url.empty() << 5 |
-                !config.psx_games_url.empty() << 2 |
-                !config.psp_games_url.empty() << 3 |
-                !config.psp_dlcs_url.empty() << 7 |
-                !config.psm_games_url.empty() << 4;
+        int allow_refresh = !config.games_url.empty() << 0 |
+                            !config.dlcs_url.empty() << 1 |
+                            !config.demos_url.empty() << 6 |
+                            !config.themes_url.empty() << 5 |
+                            !config.psx_games_url.empty() << 2 |
+                            !config.psp_games_url.empty() << 3 |
+                            !config.psp_dlcs_url.empty() << 7 |
+                            !config.psm_games_url.empty() << 4;
         pkgi_menu_start(search_active, &config, allow_refresh);
     }
 }
@@ -902,11 +899,10 @@ void pkgi_do_tail(Downloader& downloader)
     int right = rightw + PKGI_MAIN_TEXT_PADDING;
 
     std::string bottom_text;
-    if (gameview || pkgi_dialog_is_open()) {
+    if (gameview || pkgi_dialog_is_open())
+    {
         bottom_text = fmt::format(
-                "{} select {} close",
-                pkgi_get_ok_str(),
-                pkgi_get_cancel_str());
+                "{} select {} close", pkgi_get_ok_str(), pkgi_get_cancel_str());
     }
     else if (pkgi_menu_is_open())
     {
@@ -1016,13 +1012,14 @@ void pkgi_open_db()
 }
 }
 
-void pkgi_create_psp_rif(std::string contentid, uint8_t* rif) {
+void pkgi_create_psp_rif(std::string contentid, uint8_t* rif)
+{
     SceNpDrmLicense license;
     memset(&license, 0x00, sizeof(SceNpDrmLicense));
     license.account_id = 0x0123456789ABCDEFLL;
     memset(license.ecdsa_signature, 0xFF, 0x28);
     strncpy(license.content_id, contentid.c_str(), 0x30);
-    
+
     memcpy(rif, &license, PKGI_PSP_RIF_SIZE);
 }
 
@@ -1035,14 +1032,18 @@ void pkgi_start_download(Downloader& downloader, const DbItem& item)
         // Just use the maximum size to be safe
         uint8_t rif[PKGI_PSM_RIF_SIZE];
         char message[256];
-        if (item.zrif.empty() || pkgi_zrif_decode(item.zrif.c_str(), rif, message, sizeof(message)))
+        if (item.zrif.empty() ||
+            pkgi_zrif_decode(item.zrif.c_str(), rif, message, sizeof(message)))
         {
             if (mode == ModeGames || mode == ModeDlcs || mode == ModeDemos ||
-                mode == ModeThemes || ( MODE_IS_PSPEMU(mode) && pkgi_is_module_present("NoPspEmuDrm_kern") ))
+                mode == ModeThemes ||
+                (MODE_IS_PSPEMU(mode) &&
+                 pkgi_is_module_present("NoPspEmuDrm_kern")))
             {
-                
-                if(MODE_IS_PSPEMU(mode)) pkgi_create_psp_rif(item.content, rif);
-                
+
+                if (MODE_IS_PSPEMU(mode))
+                    pkgi_create_psp_rif(item.content, rif);
+
                 pkgi_start_bgdl(
                         mode_to_bgdl_type(mode),
                         item.name,
@@ -1098,12 +1099,14 @@ int main()
 
         Downloader downloader;
 
-        downloader.refresh = [](const std::string& content) {
+        downloader.refresh = [](const std::string& content)
+        {
             std::lock_guard<Mutex> lock(refresh_mutex);
             content_to_refresh = content;
             need_refresh = true;
         };
-        downloader.error = [](const std::string& error) {
+        downloader.error = [](const std::string& error)
+        {
             // FIXME this runs on the wrong thread
             pkgi_dialog_error(("Download failure: " + error).c_str());
         };
@@ -1168,11 +1171,20 @@ int main()
 
             if (gameview || pkgi_dialog_is_open())
             {
-                io.AddKeyEvent(ImGuiKey_GamepadDpadUp, input.pressed & PKGI_BUTTON_UP);
-                io.AddKeyEvent(ImGuiKey_GamepadDpadDown, input.pressed & PKGI_BUTTON_DOWN);
-                io.AddKeyEvent(ImGuiKey_GamepadDpadLeft, input.pressed & PKGI_BUTTON_LEFT);
-                io.AddKeyEvent(ImGuiKey_GamepadDpadRight, input.pressed & PKGI_BUTTON_RIGHT);
-                io.AddKeyEvent(ImGuiKey_GamepadFaceDown, input.pressed & pkgi_ok_button());
+                io.AddKeyEvent(
+                        ImGuiKey_GamepadDpadUp, input.pressed & PKGI_BUTTON_UP);
+                io.AddKeyEvent(
+                        ImGuiKey_GamepadDpadDown,
+                        input.pressed & PKGI_BUTTON_DOWN);
+                io.AddKeyEvent(
+                        ImGuiKey_GamepadDpadLeft,
+                        input.pressed & PKGI_BUTTON_LEFT);
+                io.AddKeyEvent(
+                        ImGuiKey_GamepadDpadRight,
+                        input.pressed & PKGI_BUTTON_RIGHT);
+                io.AddKeyEvent(
+                        ImGuiKey_GamepadFaceDown,
+                        input.pressed & pkgi_ok_button());
                 if (input.pressed & pkgi_cancel_button() && gameview)
                     gameview->close();
 

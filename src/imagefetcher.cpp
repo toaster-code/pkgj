@@ -1,8 +1,8 @@
 #include "imagefetcher.hpp"
 
 #include "db.hpp"
-#include "pkgi.hpp"
 #include "file.hpp"
+#include "pkgi.hpp"
 #include "vitahttp.hpp"
 
 #include <fmt/format.h>
@@ -112,7 +112,8 @@ void ImageFetcher::do_request()
         {
             std::lock_guard<Mutex> lock(_mutex);
             _texture = vita2d_load_JPEG_file(_path.c_str());
-            if (_texture) return;
+            if (_texture)
+                return;
         }
         {
             std::lock_guard<Mutex> lock(_mutex);
@@ -124,7 +125,8 @@ void ImageFetcher::do_request()
         {
             std::lock_guard<Mutex> lock(_mutex);
             if (image && !image->empty())
-                _texture = vita2d_load_JPEG_buffer(image->data(), image->size());
+                _texture =
+                        vita2d_load_JPEG_buffer(image->data(), image->size());
             _http = nullptr;
         }
         if (image && !image->empty())

@@ -89,7 +89,8 @@ enum Mode
     ModePspDlcs,
 };
 
-#define MODE_IS_PSPEMU(x) (x == ModePsxGames || x == ModePspGames || x == ModePspDlcs)
+#define MODE_IS_PSPEMU(x) \
+    (x == ModePsxGames || x == ModePspGames || x == ModePspDlcs)
 
 static constexpr auto ModeCount = 8;
 

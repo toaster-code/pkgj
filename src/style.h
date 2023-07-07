@@ -11,8 +11,8 @@
 #define PKGI_UTF8_S "\xe2\x96\xa1" // 0x25a1
 
 #define PKGI_UTF8_INSTALLING "\xe2\x96\xb6" // 0x25b6
-#define PKGI_UTF8_INSTALLED "\xe2\x97\x8f"  // 0x25cf
-#define PKGI_UTF8_PARTIAL "\xe2\x97\x8b"    // 0x25cb
+#define PKGI_UTF8_INSTALLED "\xe2\x97\x8f" // 0x25cf
+#define PKGI_UTF8_PARTIAL "\xe2\x97\x8b" // 0x25cb
 #define PKGI_COLOR_GAME_PRESENT PKGI_COLOR(50, 50, 255)
 
 #define PKGI_UTF8_B "B"
@@ -22,10 +22,10 @@
 
 #define PKGI_UTF8_CLEAR "\xc3\x97" // 0x00d7
 
-#define PKGI_UTF8_SORT_ASC "\xe2\x96\xb2"  // 0x25b2
+#define PKGI_UTF8_SORT_ASC "\xe2\x96\xb2" // 0x25b2
 #define PKGI_UTF8_SORT_DESC "\xe2\x96\xbc" // 0x25bc
 
-#define PKGI_UTF8_CHECK_ON "\xe2\x97\x8f"  // 0x25cf
+#define PKGI_UTF8_CHECK_ON "\xe2\x97\x8f" // 0x25cf
 #define PKGI_UTF8_CHECK_OFF "\xe2\x97\x8b" // 0x25cb
 
 #define PKGI_COLOR_DIALOG_BACKGROUND PKGI_COLOR(48, 48, 48)

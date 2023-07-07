@@ -94,15 +94,14 @@ typedef void* pkgi_texture;
 #ifdef _MSC_VER
 #define pkgi_load_png(name) pkgi_load_png_raw(#name##".png", 0)
 #else
-#define pkgi_load_png(name)                                   \
-    ({                                                        \
-        extern uint8_t _binary_assets_##name##_png_start;     \
-        extern uint8_t _binary_assets_##name##_png_end;       \
-        pkgi_load_png_raw(                                    \
-                (void*)&_binary_assets_##name##_png_start,    \
-                (uint32_t)(                                   \
-                        &_binary_assets_##name##_png_end -    \
-                        &_binary_assets_##name##_png_start)); \
+#define pkgi_load_png(name)                                      \
+    ({                                                           \
+        extern uint8_t _binary_assets_##name##_png_start;        \
+        extern uint8_t _binary_assets_##name##_png_end;          \
+        pkgi_load_png_raw(                                       \
+                (void*)&_binary_assets_##name##_png_start,       \
+                (uint32_t)(&_binary_assets_##name##_png_end -    \
+                           &_binary_assets_##name##_png_start)); \
     })
 #endif
 
@@ -118,7 +117,6 @@ int pkgi_text_height(const char* text);
 
 class Downloader;
 struct DbItem;
-
 
 void pkgi_create_psp_rif(std::string contentid, uint8_t* rif);
 

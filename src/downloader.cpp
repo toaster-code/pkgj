@@ -153,8 +153,9 @@ void Downloader::do_download_package(const DownloadItem& item)
     LOG("downloading %s", item.name.c_str());
     auto download = std::make_unique<Download>(std::make_unique<VitaHttp>());
     download->save_as_iso = item.save_as_iso;
-    download->update_progress_cb = [this](uint64_t download_offset,
-                                          uint64_t download_size) {
+    download->update_progress_cb =
+            [this](uint64_t download_offset, uint64_t download_size)
+    {
         _download_offset = download_offset;
         _download_size = download_size;
     };
@@ -216,8 +217,9 @@ void Downloader::do_download_comppack(const DownloadItem& item)
     auto download =
             std::make_unique<FileDownload>(std::make_unique<VitaHttp>());
 
-    download->update_progress_cb = [this](uint64_t download_offset,
-                                          uint64_t download_size) {
+    download->update_progress_cb =
+            [this](uint64_t download_offset, uint64_t download_size)
+    {
         _download_offset = download_offset;
         _download_size = download_size;
     };

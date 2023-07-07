@@ -4,9 +4,9 @@
 #include "config.hpp"
 #include "db.hpp"
 #include "downloader.hpp"
+#include "imagefetcher.hpp"
 #include "install.hpp"
 #include "patchinfofetcher.hpp"
-#include "imagefetcher.hpp"
 
 #include <optional>
 

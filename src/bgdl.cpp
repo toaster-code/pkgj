@@ -35,7 +35,8 @@ typedef struct ipmi_download_param
 
 typedef struct sce_ipmi_download_param
 {
-    union {
+    union
+    {
         struct
         {
             uint32_t* ptr_to_dc0_ptr;
@@ -180,8 +181,8 @@ void init_download_class(scedownload_class* sceDownloadObj)
 
     sceDownloadObj->init =
             (SceDownloadInit)(*(sceDownloadObj->class_header->func_table))[1];
-    sceDownloadObj->change_state = (SceDownloadChangeState)(
-            *(sceDownloadObj->class_header->func_table))[5];
+    sceDownloadObj->change_state = (SceDownloadChangeState)(*(
+            sceDownloadObj->class_header->func_table))[5];
 
     res = sceDownloadObj->init(
             sceDownloadObj->class_header->func_table,
@@ -319,7 +320,7 @@ void pkgi_start_bgdl(
 
     int rif_size = PKGI_RIF_SIZE;
     if (type == BgdlTypePsp)
-      rif_size = PKGI_PSP_RIF_SIZE;
+        rif_size = PKGI_PSP_RIF_SIZE;
     pkgi_save(license_path, rif.data(), rif.size());
 
     scedownload_start_with_rif(

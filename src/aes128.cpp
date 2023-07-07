@@ -26,7 +26,8 @@
 
 static inline uint8x16_t vtbl1q_u8(uint8x16_t x, uint8x16_t shuffle)
 {
-    union {
+    union
+    {
         uint8x16_t x1;
         uint8x8x2_t x2;
     } u;
@@ -296,22 +297,23 @@ void aes128_ctr_init(aes128_ctx* ctx, const uint8_t* key)
     aes128_init(ctx, key);
 
 #if __ARM_NEON__
-    static const uint8_t M0_bytes[] GCC_ALIGN(16) = {0xf,
-                                                     0xb,
-                                                     0x7,
-                                                     0x3,
-                                                     0xe,
-                                                     0xa,
-                                                     0x6,
-                                                     0x2,
-                                                     0xd,
-                                                     0x9,
-                                                     0x5,
-                                                     0x1,
-                                                     0xc,
-                                                     0x8,
-                                                     0x4,
-                                                     0x0};
+    static const uint8_t M0_bytes[] GCC_ALIGN(16) = {
+            0xf,
+            0xb,
+            0x7,
+            0x3,
+            0xe,
+            0xa,
+            0x6,
+            0x2,
+            0xd,
+            0x9,
+            0x5,
+            0x1,
+            0xc,
+            0x8,
+            0x4,
+            0x0};
     uint8x16_t M0 = vld1q_u8(M0_bytes);
 
     ASSERT_ALIGNED(ctx->key, 16);
@@ -1002,22 +1004,23 @@ static void aes128_ctr_neon(
             x6 = veorq_u8(x6, first);
             x7 = veorq_u8(x7, first);
 
-            static const uint8_t M0SR_bytes[] GCC_ALIGN(16) = {0xb,
-                                                               0x7,
-                                                               0x3,
-                                                               0xf,
-                                                               0x6,
-                                                               0x2,
-                                                               0xe,
-                                                               0xa,
-                                                               0x1,
-                                                               0xd,
-                                                               0x9,
-                                                               0x5,
-                                                               0xc,
-                                                               0x8,
-                                                               0x4,
-                                                               0x0};
+            static const uint8_t M0SR_bytes[] GCC_ALIGN(16) = {
+                    0xb,
+                    0x7,
+                    0x3,
+                    0xf,
+                    0x6,
+                    0x2,
+                    0xe,
+                    0xa,
+                    0x1,
+                    0xd,
+                    0x9,
+                    0x5,
+                    0xc,
+                    0x8,
+                    0x4,
+                    0x0};
             uint8x16_t M0SR = vld1q_u8(M0SR_bytes);
 
             x0 = vtbl1q_u8(x0, M0SR);
@@ -1032,22 +1035,23 @@ static void aes128_ctr_neon(
 
         BITSLICE(x7, x6, x5, x4, x3, x2, x1, x0);
 
-        static const uint8_t SR_bytes[] GCC_ALIGN(16) = {0x1,
-                                                         0x2,
-                                                         0x3,
-                                                         0x0,
-                                                         0x6,
-                                                         0x7,
-                                                         0x4,
-                                                         0x5,
-                                                         0xb,
-                                                         0x8,
-                                                         0x9,
-                                                         0xa,
-                                                         0xc,
-                                                         0xd,
-                                                         0xe,
-                                                         0xf};
+        static const uint8_t SR_bytes[] GCC_ALIGN(16) = {
+                0x1,
+                0x2,
+                0x3,
+                0x0,
+                0x6,
+                0x7,
+                0x4,
+                0x5,
+                0xb,
+                0x8,
+                0x9,
+                0xa,
+                0xc,
+                0xd,
+                0xe,
+                0xf};
         uint8x16_t shuffle = vld1q_u8(SR_bytes);
 
         int round = 9;
@@ -1089,22 +1093,23 @@ static void aes128_ctr_neon(
             else if (round == 0)
             {
                 // round 9 skips mixcolumns
-                static const uint8_t SRM0_bytes[] GCC_ALIGN(16) = {0xf,
-                                                                   0xa,
-                                                                   0x5,
-                                                                   0x0,
-                                                                   0xe,
-                                                                   0x9,
-                                                                   0x4,
-                                                                   0x3,
-                                                                   0xd,
-                                                                   0x8,
-                                                                   0x7,
-                                                                   0x2,
-                                                                   0xc,
-                                                                   0xb,
-                                                                   0x6,
-                                                                   0x1};
+                static const uint8_t SRM0_bytes[] GCC_ALIGN(16) = {
+                        0xf,
+                        0xa,
+                        0x5,
+                        0x0,
+                        0xe,
+                        0x9,
+                        0x4,
+                        0x3,
+                        0xd,
+                        0x8,
+                        0x7,
+                        0x2,
+                        0xc,
+                        0xb,
+                        0x6,
+                        0x1};
                 shuffle = vld1q_u8(SRM0_bytes);
             }
             // for rounds [0..8] - mixcolumns
