@@ -103,6 +103,8 @@ void GameView::render()
         if (ImGui::Button("Install game###installgame"))
             start_download_package();
     }
+    ImGui::SetKeyboardFocusHere(-1);
+    ImGui::SetItemDefaultFocus();
 
     if (_base_comppack)
     {

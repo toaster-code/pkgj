@@ -145,6 +145,7 @@ void pkgi_do_dialog()
     if (local_type == DialogQuestion)
     {
         ImGui::Separator();
+        int i = 0;
         for (auto const& response : responses)
         {
             if (ImGui::Button(
@@ -157,6 +158,10 @@ void pkgi_do_dialog()
                 dialog_responses = {};
                 pkgi_dialog_unlock();
                 callback = response.callback;
+            }
+            if (++i == 1) {
+                ImGui::SetKeyboardFocusHere(-1);
+                ImGui::SetItemDefaultFocus();
             }
         }
     }
@@ -172,6 +177,7 @@ void pkgi_do_dialog()
             dialog_type = DialogNone;
             pkgi_dialog_unlock();
         }
+        ImGui::SetKeyboardFocusHere(-1);
         ImGui::SetItemDefaultFocus();
     }
     ImGui::End();
