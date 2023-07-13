@@ -9,13 +9,13 @@ extern "C"
 #include "file.hpp"
 #include "http.hpp"
 #include "log.hpp"
+#include "psx.hpp"
 
 #include <fmt/format.h>
 
 #include <boost/scope_exit.hpp>
 
 #include <string>
-
 #include <vita2d.h>
 
 #include <psp2/appmgr.h>
@@ -89,6 +89,7 @@ void pkgi_log(const char* msg, ...)
     // sceKernelDelayThread(10);
 }
 #endif
+
 
 int pkgi_snprintf(char* buffer, uint32_t size, const char* msg, ...)
 {
@@ -567,6 +568,10 @@ void pkgi_start(void)
 
     sqlite3_rw_init();
     LOG("start done");
+
+	LOG("Caching PSX content id to title id list");
+	pkgi_scan_pbps();
+	
 }
 
 int pkgi_update(pkgi_input* input)

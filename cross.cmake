@@ -63,6 +63,7 @@ add_executable(pkgj
   src/gameview.cpp
   src/patchinfo.cpp
   src/patchinfofetcher.cpp
+  src/psx.cpp
   src/imagefetcher.cpp
   src/imgui.cpp
   src/install.cpp
