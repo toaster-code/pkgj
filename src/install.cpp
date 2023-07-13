@@ -74,12 +74,12 @@ bool pkgi_psx_is_installed(const char* psppartition, const char* content)
     bool game_exist = pkgi_file_exists(
             fmt::format("{}pspemu/PSP/GAME/{:.9}", psppartition, content + 7)
                     .c_str());
-	
-	if(!game_exist) {
-		game_exist = pkgi_is_psx_game_installed_titleid(std::string(content + 7, 9));
-	}
-	
-	return game_exist;
+    
+    if(!game_exist) {
+        game_exist = pkgi_is_psx_game_installed_titleid(std::string(content + 7, 9));
+    }
+    
+    return game_exist;
 }
 
 void pkgi_install(const char* contentid)

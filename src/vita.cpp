@@ -569,9 +569,9 @@ void pkgi_start(void)
     sqlite3_rw_init();
     LOG("start done");
 
-	LOG("Caching PSX content id to title id list");
-	pkgi_scan_pbps();
-	
+    LOG("Caching PSX content id to title id list");
+    pkgi_scan_pbps();
+    
 }
 
 int pkgi_update(pkgi_input* input)

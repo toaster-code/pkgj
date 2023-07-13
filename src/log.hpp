@@ -13,7 +13,7 @@
 #define LOGF(msg, ...)                                     \
     do                                                     \
     {                                                      \
-		pkgi_log(fmt::format(msg, ##__VA_ARGS__).c_str()); \
+        pkgi_log(fmt::format(msg, ##__VA_ARGS__).c_str()); \
     } while (0)
 #else
 #define LOG(...) \
