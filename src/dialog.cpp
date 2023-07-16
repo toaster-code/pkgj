@@ -7,6 +7,7 @@ extern "C"
 #include "pkgi.hpp"
 
 #include <imgui.h>
+#include <imgui_internal.h>
 
 namespace
 {
@@ -159,8 +160,13 @@ void pkgi_do_dialog()
                 pkgi_dialog_unlock();
                 callback = response.callback;
             }
-            if (++i == 1) {
-                ImGui::SetKeyboardFocusHere(-1);
+            if (++i == 1)
+            {
+                // ImGui::SetItemDefaultFocus doesn't seem to work here...
+                ImGuiContext& g = *GImGui;
+                ImGuiWindow* window = g.CurrentWindow;
+                if (window->Appearing)
+                    ImGui::SetKeyboardFocusHere(-1);
                 ImGui::SetItemDefaultFocus();
             }
         }
@@ -177,7 +183,6 @@ void pkgi_do_dialog()
             dialog_type = DialogNone;
             pkgi_dialog_unlock();
         }
-        ImGui::SetKeyboardFocusHere(-1);
         ImGui::SetItemDefaultFocus();
     }
     ImGui::End();

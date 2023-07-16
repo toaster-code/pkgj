@@ -103,7 +103,6 @@ void GameView::render()
         if (ImGui::Button("Install game###installgame"))
             start_download_package();
     }
-    ImGui::SetKeyboardFocusHere(-1);
     ImGui::SetItemDefaultFocus();
 
     if (_base_comppack)
@@ -260,7 +259,7 @@ void GameView::refresh()
 
 void GameView::do_download() {
     pkgi_start_download(*_downloader, *_item);
-    _item->presence = PresenceUnknown;    
+    _item->presence = PresenceUnknown;
 }
 
 void GameView::start_download_package()
@@ -271,7 +270,7 @@ void GameView::start_download_package()
         pkgi_dialog_question(
         fmt::format(
                 "{} is already installed."
-                "Would you like to redownload it?", 
+                "Would you like to redownload it?",
                 _item->name)
                 .c_str(),
         {{"Redownload.", [this] { this->do_download(); }},
