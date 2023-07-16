@@ -289,17 +289,28 @@ bool pkgi_theme_is_installed(std::string contentid)
     return installed_themes.find(contentid) != installed_themes.end();
 }
 
+void do_download(Downloader& downloader, DbItem* item) {
+    pkgi_start_download(downloader, *item);
+    item->presence = PresenceUnknown;
+}
+
 void pkgi_install_package(Downloader& downloader, DbItem* item)
 {
     if (item->presence == PresenceInstalled)
     {
         LOGF("[{}] {} - already installed", item->content, item->name);
-        pkgi_dialog_error("Already installed");
+        pkgi_dialog_question(
+        fmt::format(
+                "{} is already installed."
+                "Would you like to redownload it?", 
+                item->name)
+                .c_str(),
+        {{"Redownload.", [&downloader, item] { do_download(downloader, item); }},
+         {"Dont Redownload.", [] {} }});
         return;
     }
-
-    pkgi_start_download(downloader, *item);
-    item->presence = PresenceUnknown;
+    
+    do_download(downloader, item);
 }
 
 void pkgi_friendly_size(char* text, uint32_t textlen, int64_t size)

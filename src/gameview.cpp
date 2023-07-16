@@ -257,18 +257,28 @@ void GameView::refresh()
     _comppack_versions = pkgi_get_comppack_versions(_item->titleid);
 }
 
+
+void GameView::do_download() {
+    pkgi_start_download(*_downloader, *_item);
+    _item->presence = PresenceUnknown;    
+}
+
 void GameView::start_download_package()
 {
     if (_item->presence == PresenceInstalled)
     {
         LOGF("[{}] {} - already installed", _item->titleid, _item->name);
-        pkgi_dialog_error("Already installed");
+        pkgi_dialog_question(
+        fmt::format(
+                "{} is already installed."
+                "Would you like to redownload it?", 
+                _item->name)
+                .c_str(),
+        {{"Redownload.", [this] { this->do_download(); }},
+         {"Dont Redownload.", [] {} }});
         return;
     }
-
-    pkgi_start_download(*_downloader, *_item);
-
-    _item->presence = PresenceUnknown;
+    this->do_download();
 }
 
 void GameView::cancel_download_package()

@@ -7,7 +7,7 @@
 #define LOG(msg, ...)                 \
     do                                \
     {                                 \
-        pkgi_log(msg, ##__VA_ARGS__); \ 
+        pkgi_log(msg, ##__VA_ARGS__); \
     } while (0)
 #define LOGF(msg, ...)                                     \
     do                                                     \
