@@ -3,7 +3,7 @@
 [![Downloads][img_downloads]][pkgj_downloads] [![Release][img_latest]][pkgj_latest] [![License][img_license]][pkgj_license]
 
 This homebrew allows to download & unpack pkg file directly on Vita together with your [NoNpDrm][] or [NoPsmDrm][] fake license.
-
+for PSP can be played using [Adrenaline][] or directly from livearea using [NoPspEmuDrm][] 
 # Features
 
 * **works on** all PS Vita models, including PSTV.
@@ -16,7 +16,7 @@ This homebrew allows to download & unpack pkg file directly on Vita together wit
 * **installs** Game Updates, DLCs, Demos, Themes, PSM, PSP games, PSP DLCs, and PSX games.
 
 Current limitations:
-* **no background downloads for PSX/PSP/PSM titles** - if application is closed or Vita is put in sleep then download will stop.
+* **no background downloads for PSM titles** - if application is closed or Vita is put in sleep then download will stop.
 
 # Download
 
@@ -61,8 +61,13 @@ pkgj is shipped with valid default URLs. If you wish to change some settings, th
 2. Download speed is too slow!
 
     Typically you should see speeds ~1-2 MB/s. This is normal for Vita hardware. Of course it also depends on WiFi router you have and WiFi signal strength. But sometimes speed will drop down to only few hundred KB/s. This happens for pkg files that contains many small files or many folders. Creating a new file or a new folder takes extra time which slows down the download.
-
-3. I want to install PSP games as EBOOT file.
+3. Cant background download for PSP games and dont appear on LiveArea
+    
+    To background download PSP Games, and to launch directly from livearea outside Adrenaline
+    you will need the [NoPspEmuDrm][] plugin.
+    
+    also doing this will make them download as EBOOT files instead of ISO files.
+4. I want to install PSP games as EBOOT file.
 
     Installing PSP games as EBOOT files is possible. It allows to install games faster and make them take less space. However, you will need to install the [npdrm_free][] plugin to make them work.
 
@@ -73,19 +78,19 @@ pkgj is shipped with valid default URLs. If you wish to change some settings, th
 
     If you want to switch back to the other mode, simply remove the line. Writing 0 is not sufficient.
 
-4. I can't play PSP games, it says "The game could not be started (80010087)".
+5. I can't play PSP games, it says "The game could not be started (80010087)".
 
     You need to install the [npdrm_free][] plugin in VSH, or install games as ISO.
 
-5. The PSM Games don't work.
+6. The PSM Games don't work.
 
     If you followed the instructions for [NoPsmDrm][], you can try to activate your account for psm games using [NoPsmDrm Fixer](https://github.com/Yoti/psv_npdrmfix).
 
-6. Can't download Updates or DLCs on my PSTV
+7. Can't download Updates or DLCs on my PSTV
 
     This error is caused by AntiBlackList. To fix it, completely undo then uninstall AntiBlackList and install [DolcePolce](https://forum.devchroma.nl/index.php/topic,58.0.html) plugin instead.
 
-7. How do I use compatibility packs?
+8. How do I use compatibility packs?
 
     Compatiblity packs are deprecated and disabled by default. It is recommended to use [reF00D](https://github.com/dots-tb/reF00D) or [0syscall6](https://github.com/SKGleba/0syscall6). If you would still like to use compatiblity packs, set `url_comppack` to `https://gitlab.com/nopaystation_repos/nps_compati_packs/raw/master/` in the config file. Firmwares 3.65 or lower require a workaround for TLS. The compatibility pack list has not been updated since Oct 2019.
 
@@ -137,6 +142,7 @@ puff.h and puff.c files are under [zlib][] license.
 [NoNpDrm]: https://github.com/TheOfficialFloW/NoNpDrm/releases
 [npdrm_free]: https://github.com/kyleatlast/npdrm_free/releases
 [NoPsmDrm]: https://github.com/frangarcj/NoPsmDrm/
+[NoPspEmuDrm]: https://github.com/LiEnby/NoPspEmuDrm
 [zrif_online_converter]: https://rawgit.com/mmozeiko/pkg2zip/online/zrif.html
 [pkg_dec]: https://github.com/weaknespase/PkgDecrypt
 [pkg_releases]: https://github.com/blastrock/pkgj/releases
