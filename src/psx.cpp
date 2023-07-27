@@ -7,6 +7,7 @@
 #include <psp2/io/dirent.h>
 #include <fmt/format.h>
 
+#include "sfo.hpp"
 #include "psx.hpp"
 #include "log.hpp"
 
@@ -17,46 +18,93 @@ bool pkgi_is_psx_game_installed_titleid(std::string title_id) {
     return (installed_psx_games.find(title_id) != installed_psx_games.end());
 }
 
-void pkgi_process_pbp(std::string eboot_pbp, std::string disc_id) {
+void pkgi_psx_add_installed_game(std::string title_id, std::string disc_id) {
+    installed_psx_games.insert({title_id, disc_id});
+}
+
+std::string pkgi_pbp_read_disc_id(std::string eboot_pbp) {
     pbp_header pbp_hdr;
     
     SceUID fd = sceIoOpen(eboot_pbp.c_str(), SCE_O_RDONLY, 0777);    
-    int read_sz = sceIoRead(fd, &pbp_hdr, sizeof(pbp_header));
-
-    // check got actual pbp header sz read
-    if(read_sz >= sizeof(pbp_header));
-    {
-        // check magic is PBP magic
-        if(memcmp(pbp_hdr.magic, "\0PBP", sizeof(pbp_hdr.magic)) == 0){
-            sceIoLseek(fd, pbp_hdr.data_psar, SCE_SEEK_SET);
-            LOGF("pbp_hdr magic is \"\\0PBP\"");
-            
-            char magic[0x8];
-            read_sz = sceIoRead(fd, magic, sizeof(magic));
-            if(read_sz >= sizeof(magic)) {
-                
-                // check is psx game
-                if(memcmp(magic, "PSISOIMG", sizeof(magic)) == 0 || memcmp(magic, "PSTITLEI", sizeof(magic)) == 0) {
-                    LOGF("data.psar magic is {}", std::string(magic, 8));
+    
+    std::string disc_id = "";
+    // check can open eboot file at all
+    if(fd >= 0) {
+        // check file is atleast size of pbp header
+        int read_sz = sceIoRead(fd, &pbp_hdr, sizeof(pbp_header));
+        if(read_sz >= sizeof(pbp_header)) {
+            // check magic is PBP magic
+            if(memcmp(pbp_hdr.magic, "\0PBP", sizeof(pbp_hdr.magic)) == 0){
+                // check the param.sfo length is valid
+                if(pbp_hdr.icon0_png > pbp_hdr.param_sfo) {
+                    sceIoLseek(fd, pbp_hdr.param_sfo, SCE_SEEK_SET);
+                    size_t sfo_sz = pbp_hdr.icon0_png - pbp_hdr.param_sfo;
                     
-                    np_data_psp data_psp;
-                    sceIoLseek(fd, pbp_hdr.data_psp, SCE_SEEK_SET);
-                    read_sz = sceIoRead(fd, &data_psp, sizeof(np_data_psp));
-                    if(read_sz >= sizeof(np_data_psp)) {
-                        int cid_sz = strnlen(data_psp.content_id, 40);
-                        if(cid_sz == 36) {
-                            std::string title_id = std::string(data_psp.content_id + 7, 9);
-                            installed_psx_games.insert({title_id, disc_id});
-                            LOGF("Inserting {} = {}", title_id, disc_id);
-                        }
+                    // read the sfo from the pbp
+                    uint8_t* sfo = new uint8_t[sfo_sz];
+                    read_sz = sceIoRead(fd, sfo, sfo_sz);
+                    
+                    // check read size is actually the size of the sfo
+                    if(read_sz >= sfo_sz) {
+                        disc_id = pkgi_sfo_get_string(sfo, sfo_sz, "DISC_ID");
+                    }
+                    
+                    // free the sfo buffer
+                    if(sfo != nullptr) {
+                        delete[] sfo;
                     }
                 }
             }
-            
         }
+        sceIoClose(fd);
     }
+    return disc_id;
+}
+
+void pkgi_process_pbp(std::string eboot_pbp, std::string disc_id) {
+    pbp_header pbp_hdr;
     
-    sceIoClose(fd);
+    SceUID fd = sceIoOpen(eboot_pbp.c_str(), SCE_O_RDONLY, 0777);   
+    // check can open eboot file at all
+    if(fd >= 0) {
+        // check file is atleast size of pbp header
+        int read_sz = sceIoRead(fd, &pbp_hdr, sizeof(pbp_header));
+        if(read_sz >= sizeof(pbp_header)) {
+            // check magic is PBP magic
+            if(memcmp(pbp_hdr.magic, "\0PBP", sizeof(pbp_hdr.magic)) == 0){
+                sceIoLseek(fd, pbp_hdr.data_psar, SCE_SEEK_SET);
+                LOGF("pbp_hdr magic is \"\\0PBP\"");
+                
+                // check DATA.PSAR is atleast 8 bytes long
+                char magic[0x8];
+                read_sz = sceIoRead(fd, magic, sizeof(magic));
+                if(read_sz >= sizeof(magic)) {
+                    
+                    // check is psx game
+                    if(memcmp(magic, "PSISOIMG", sizeof(magic)) == 0 || memcmp(magic, "PSTITLEI", sizeof(magic)) == 0) {
+                        LOGF("data.psar magic is {}", std::string(magic, 8));
+                        
+                        // check data.psp size is atleast the data.psp self header
+                        np_data_psp data_psp;
+                        sceIoLseek(fd, pbp_hdr.data_psp, SCE_SEEK_SET);
+                        read_sz = sceIoRead(fd, &data_psp, sizeof(np_data_psp));
+                        if(read_sz >= sizeof(np_data_psp)) {
+                            // check the content id is the correct length
+                            int cid_sz = strnlen(data_psp.content_id, 40);
+                            if(cid_sz == 36) {
+                                std::string title_id = std::string(data_psp.content_id + 7, 9);
+                                pkgi_psx_add_installed_game(title_id, disc_id);
+                                LOGF("Inserting {} = {}", title_id, disc_id);
+                            }
+                        }
+                    }
+                }
+                
+            }
+        }
+        
+        sceIoClose(fd);
+    }
     
 }
 

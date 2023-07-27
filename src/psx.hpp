@@ -29,5 +29,6 @@ typedef struct np_data_psp{
 } np_data_psp;
 
 void pkgi_scan_pbps();
-
+std::string pkgi_pbp_read_disc_id(std::string eboot_pbp);
 bool pkgi_is_psx_game_installed_titleid(std::string title_id);
+void pkgi_psx_add_installed_game(std::string title_id, std::string disc_id);

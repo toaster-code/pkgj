@@ -6,6 +6,7 @@
 #include "log.hpp"
 #include "sfo.hpp"
 #include "sqlite.hpp"
+#include "psx.hpp"
 
 #include <boost/scope_exit.hpp>
 
@@ -207,16 +208,31 @@ void pkgi_install_pspgame(const char* partition, const char* contentid)
 {
     LOG("Installing a PSP/PSX game");
     const auto path = fmt::format("{}pkgj/{}", partition, contentid);
-    const auto dest =
-            fmt::format("{}pspemu/PSP/GAME/{:.9}", partition, contentid + 7);
+    
+    const auto eboot_path = fmt::format("{}/EBOOT.PBP", path);
+    const auto sce_sys_path = fmt::format("{}/sce_sys", path);
+
+    // determine disc id from the pbp file
+    std::string title_id = std::string(contentid + 7, 9);
+    const char* disc_id = pkgi_pbp_read_disc_id(eboot_path).c_str();
+    if(strlen(disc_id) < 9)
+        disc_id = title_id.c_str();
+    
+    const auto dest = fmt::format("{}pspemu/PSP/GAME/{:.9}", partition, disc_id);
 
     pkgi_mkdirs(fmt::format("{}pspemu/PSP/GAME", partition).c_str());
+    
+    // sce_sys folder from pkg not included on psx and psp game
+    pkgi_delete_dir(sce_sys_path);
 
     LOG("installing psx game at %s to %s", path.c_str(), dest.c_str());
     int res = sceIoRename(path.c_str(), dest.c_str());
+    
     if (res < 0)
         throw std::runtime_error(fmt::format(
                 "failed to rename: {:#08x}", static_cast<uint32_t>(res)));
+    // add game to installed psx games list so it comes up as installed.
+    pkgi_psx_add_installed_game(title_id, disc_id);
 }
 
 static void pkgi_move_merge(const std::string& from, const std::string& to)
