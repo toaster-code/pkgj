@@ -143,6 +143,7 @@ puff.h and puff.c files are under [zlib][] license.
 [npdrm_free]: https://github.com/kyleatlast/npdrm_free/releases
 [NoPsmDrm]: https://github.com/frangarcj/NoPsmDrm/
 [NoPspEmuDrm]: https://github.com/LiEnby/NoPspEmuDrm
+[Adrenaline]: https://github.com/TheOfficialFloW/Adrenaline
 [zrif_online_converter]: https://rawgit.com/mmozeiko/pkg2zip/online/zrif.html
 [pkg_dec]: https://github.com/weaknespase/PkgDecrypt
 [pkg_releases]: https://github.com/blastrock/pkgj/releases
