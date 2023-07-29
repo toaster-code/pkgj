@@ -214,9 +214,9 @@ void pkgi_install_pspgame(const char* partition, const char* contentid)
 
     // determine disc id from the pbp file
     std::string title_id = std::string(contentid + 7, 9);
-    const char* disc_id = pkgi_pbp_read_disc_id(eboot_path).c_str();
-    if(strlen(disc_id) < 9)
-        disc_id = title_id.c_str();
+    std::string disc_id = pkgi_pbp_read_disc_id(eboot_path);
+    if(disc_id.length() < 9)
+        disc_id = title_id;
     
     const auto dest = fmt::format("{}pspemu/PSP/GAME/{:.9}", partition, disc_id);
 
