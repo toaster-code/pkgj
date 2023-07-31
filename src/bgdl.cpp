@@ -321,6 +321,8 @@ void pkgi_start_bgdl(
     int rif_size = PKGI_RIF_SIZE;
     if (type == BgdlTypePsp)
         rif_size = PKGI_PSP_RIF_SIZE;
+    if(type == BgdlTypePsm)
+        rif_size = PKGI_PSM_RIF_SIZE;
     pkgi_save(license_path, rif.data(), rif.size());
 
     scedownload_start_with_rif(
