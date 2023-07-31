@@ -121,6 +121,8 @@ BgdlType mode_to_bgdl_type(Mode mode)
     case ModePsxGames:
     case ModePspDlcs:
         return BgdlTypePsp;
+	case ModePsmGames:
+		return BgdlTypePsm;
     case ModeGames:
     case ModeDemos:
         return BgdlTypeGame;
@@ -1046,10 +1048,11 @@ void pkgi_start_download(Downloader& downloader, const DbItem& item)
         if (item.zrif.empty() ||
             pkgi_zrif_decode(item.zrif.c_str(), rif, message, sizeof(message)))
         {
-            if (mode == ModeGames || mode == ModeDlcs || mode == ModeDemos ||
-                mode == ModeThemes ||
-                (MODE_IS_PSPEMU(mode) &&
-                 pkgi_is_module_present("NoPspEmuDrm_kern")))
+            if ( 
+                mode == ModeGames || mode == ModeDlcs || mode == ModeDemos || mode == ModeThemes || // Vita contents
+                (MODE_IS_PSPEMU(mode) && pkgi_is_module_present("NoPspEmuDrm_kern")) || // Psp Contents
+                (mode == ModePsmGames && pkgi_is_module_present("NoPsmDrm")) // Psm Contents
+            )
             {
 
                 if (MODE_IS_PSPEMU(mode))
