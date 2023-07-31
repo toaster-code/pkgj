@@ -1078,18 +1078,15 @@ void pkgi_start_download(Downloader& downloader, const DbItem& item)
             )
             {
 
-                if (MODE_IS_PSPEMU(mode))
+                if (MODE_IS_PSPEMU(mode)) {
                     pkgi_create_psp_rif(item.content, rif);
-
+                }
                 
                 pkgi_start_bgdl(
                         mode_to_bgdl_type(mode),
                         item.name,
                         item.url,
-                        item.zrif.empty()
-                                ? std::vector<uint8_t>{}
-                                : std::vector<uint8_t>(
-                                          rif, rif + PKGI_PSM_RIF_SIZE));
+                        std::vector<uint8_t>(rif, rif + PKGI_PSM_RIF_SIZE));
                 pkgi_dialog_message(
                         fmt::format(
                                 "Installation of {} queued in LiveArea",
