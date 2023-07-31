@@ -121,8 +121,8 @@ BgdlType mode_to_bgdl_type(Mode mode)
     case ModePsxGames:
     case ModePspDlcs:
         return BgdlTypePsp;
-	case ModePsmGames:
-		return BgdlTypePsm;
+    case ModePsmGames:
+        return BgdlTypePsm;
     case ModeGames:
     case ModeDemos:
         return BgdlTypeGame;

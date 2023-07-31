@@ -7,7 +7,7 @@
 enum BgdlType
 {
     BgdlTypePsp = 0x00,
-	BgdlTypePsm = 0x06,
+    BgdlTypePsm = 0x06,
     BgdlTypeGame = 0x16,
     BgdlTypeDlc = 0x17,
     BgdlTypeTheme = 0xC,
