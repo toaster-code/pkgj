@@ -19,6 +19,7 @@ extern "C"
 #include "utils.hpp"
 #include "vitahttp.hpp"
 #include "zrif.hpp"
+#include "psm.hpp"
 
 #include <vita2d.h>
 
@@ -74,8 +75,8 @@ std::set<std::string> installed_themes;
 
 std::unique_ptr<GameView> gameview;
 bool need_refresh = true;
+bool runtime_install_queued = false;
 std::string content_to_refresh;
-
 void pkgi_reload();
 
 const char* pkgi_get_ok_str(void)
@@ -1036,12 +1037,34 @@ void pkgi_create_psp_rif(std::string contentid, uint8_t* rif)
     memcpy(rif, &license, PKGI_PSP_RIF_SIZE);
 }
 
+
+void pkgi_download_psm_runtime_if_needed() {
+    if(!pkgi_is_installed("PCSI00011") && !runtime_install_queued) {
+        
+        uint8_t rif[PKGI_PSM_RIF_SIZE];
+        char message[256];
+        pkgi_zrif_decode(PSM_RUNTIME_DRMFREE_LICENSE, rif, message, sizeof(message));
+        
+        pkgi_start_bgdl(
+            BgdlTypeGame,
+            "PlayStation Mobile Runtime Package",
+            "http://ares.dl.playstation.net/psm-runtime/IP9100-PCSI00011_00-PSMRUNTIME000000.pkg",
+            std::vector<uint8_t>(rif, rif + PKGI_PSM_RIF_SIZE));
+            
+        runtime_install_queued = true;
+    }
+}
+
+
 void pkgi_start_download(Downloader& downloader, const DbItem& item)
 {
     LOGF("[{}] {} - starting to install", item.content, item.name);
 
     try
     {
+        // download PSM Runtime if a PSM game is requested to be installed ..
+        if(mode == ModePsmGames)
+            pkgi_download_psm_runtime_if_needed();
         // Just use the maximum size to be safe
         uint8_t rif[PKGI_PSM_RIF_SIZE];
         char message[256];
@@ -1058,18 +1081,22 @@ void pkgi_start_download(Downloader& downloader, const DbItem& item)
                 if (MODE_IS_PSPEMU(mode))
                     pkgi_create_psp_rif(item.content, rif);
 
+                
                 pkgi_start_bgdl(
                         mode_to_bgdl_type(mode),
                         item.name,
                         item.url,
-                        std::vector<uint8_t>(rif, rif + PKGI_PSM_RIF_SIZE));
+                        item.zrif.empty()
+                                ? std::vector<uint8_t>{}
+                                : std::vector<uint8_t>(
+                                          rif, rif + PKGI_PSM_RIF_SIZE));
                 pkgi_dialog_message(
                         fmt::format(
                                 "Installation of {} queued in LiveArea",
                                 item.name)
                                 .c_str());
             }
-            else
+            else {
                 downloader.add(DownloadItem{
                         mode_to_type(mode),
                         item.name,
@@ -1086,6 +1113,7 @@ void pkgi_start_download(Downloader& downloader, const DbItem& item)
                         !config.install_psp_as_pbp,
                         pkgi_get_mode_partition(),
                         ""});
+            }
         }
         else
         {
