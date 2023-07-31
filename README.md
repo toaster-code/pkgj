@@ -15,9 +15,6 @@ for PSP can be played using [Adrenaline][] or directly from livearea using [NoPs
 * **supports** the TSV file format.
 * **installs** Game Updates, DLCs, Demos, Themes, PSM, PSP games, PSP DLCs, and PSX games.
 
-Current limitations:
-* **no background downloads for PSM titles** - if application is closed or Vita is put in sleep then download will stop.
-
 # Download
 
 Get latest version as [vpk file here][pkgj_latest].
