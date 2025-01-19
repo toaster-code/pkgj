@@ -1114,6 +1114,8 @@ void pkgi_start_download(Downloader& downloader, const DbItem& item)
 {
     LOGF("[{}] {} - starting to install", item.content, item.name);
 
+    sceIoMkdir("ux0:bgdl", 0777);
+
     try
     {
         // download PSM Runtime if a PSM game is requested to be installed ..
