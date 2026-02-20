@@ -41,6 +41,9 @@ extern "C"
 
 namespace
 {
+// forward declaration — defined later in this anonymous namespace
+void pkgi_apply_annotations();
+
 typedef enum
 {
     StateError,
