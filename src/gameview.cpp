@@ -21,7 +21,8 @@ GameView::GameView(
         Downloader* downloader,
         DbItem* item,
         std::optional<CompPackDatabase::Item> base_comppack,
-        std::optional<CompPackDatabase::Item> patch_comppack)
+        std::optional<CompPackDatabase::Item> patch_comppack,
+        AnnotationDatabase* annotationDb)
     : _config(config)
     , _downloader(downloader)
     , _item(item)
@@ -29,7 +30,13 @@ GameView::GameView(
     , _patch_comppack(patch_comppack)
     , _patch_info_fetcher(item->titleid)
     , _image_fetcher(item)
+    , _annotationDb(annotationDb)
+    , _annotation(annotationDb ? annotationDb->get(item->titleid) : UserAnnotation{})
 {
+    // Populate the text buffer from the saved annotation
+    std::strncpy(_comment_buf, _annotation.comment.c_str(),
+                 sizeof(_comment_buf) - 1);
+    _comment_buf[sizeof(_comment_buf) - 1] = '\0';
     refresh();
 }
 
@@ -150,6 +157,74 @@ void GameView::render()
         ImGui::SetCursorPos(ImVec2(tex_x, tex_y));
         ImGui::Image(tex, ImVec2(tex_w, tex_h));
     }
+
+    // ---- Personal Notes ----
+    if (_annotationDb)
+    {
+        ImGui::Separator();
+        ImGui::Text("Personal Notes");
+        ImGui::Text(" ");
+
+        // Flag picker: one button per flag value
+        ImGui::Text("Flag:");
+        for (int fi = 0; fi < UserFlagCount; ++fi)
+        {
+            const auto f = static_cast<UserFlag>(fi);
+            bool active = (_annotation.flag == f);
+            if (active)
+                ImGui::PushStyleColor(
+                        ImGuiCol_Button,
+                        ImVec4(0.2f, 0.6f, 0.2f, 1.0f));
+            if (ImGui::Button(user_flag_label(f)))
+            {
+                _annotation.flag = f;
+                _annotation_dirty = true;
+            }
+            if (active)
+                ImGui::PopStyleColor();
+            if (fi < UserFlagCount - 1)
+                ImGui::SameLine();
+        }
+
+        ImGui::Text(" ");
+        ImGui::Text("Comment:");
+        // Multi-line text input; size adapts to available width
+        const float input_width =
+                _image_fetcher.get_texture() == nullptr
+                        ? ImGui::GetContentRegionAvail().x
+                        : GameViewWidth - 320.f;
+        if (ImGui::InputTextMultiline(
+                    "##ann_comment",
+                    _comment_buf,
+                    sizeof(_comment_buf),
+                    ImVec2(input_width, ImGui::GetTextLineHeight() * 3)))
+            _annotation_dirty = true;
+
+        ImGui::Text(" ");
+        if (_annotation_dirty)
+        {
+            if (ImGui::Button("Save Notes"))
+            {
+                _annotation.comment = _comment_buf;
+                _annotationDb->set(_item->titleid, _annotation);
+                // Keep DbItem in sync so the list shows the flag immediately
+                _item->user_flag    = _annotation.flag;
+                _item->user_comment = _annotation.comment;
+                _annotation_dirty = false;
+            }
+            ImGui::SameLine();
+        }
+        if (ImGui::Button("Clear Notes"))
+        {
+            _annotationDb->remove(_item->titleid);
+            _annotation = {};
+            _comment_buf[0] = '\0';
+            _item->user_flag    = UserFlag::None;
+            _item->user_comment.clear();
+            _annotation_dirty = false;
+        }
+    }
+    // ---- end Personal Notes ----
 
     ImGui::End();
 }

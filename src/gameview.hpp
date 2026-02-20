@@ -1,5 +1,6 @@
 #pragma once
 
+#include "annotationdb.hpp"
 #include "comppackdb.hpp"
 #include "config.hpp"
 #include "db.hpp"
@@ -18,7 +19,8 @@ public:
             Downloader* downloader,
             DbItem* item,
             std::optional<CompPackDatabase::Item> base_comppack,
-            std::optional<CompPackDatabase::Item> patch_comppack);
+            std::optional<CompPackDatabase::Item> patch_comppack,
+            AnnotationDatabase* annotationDb);
 
     const DbItem* get_item() const
     {
@@ -55,6 +57,13 @@ private:
 
     PatchInfoFetcher _patch_info_fetcher;
     ImageFetcher _image_fetcher;
+
+    // --- Annotation state ---
+    AnnotationDatabase* _annotationDb;
+    UserAnnotation      _annotation;       // working copy
+    char                _comment_buf[512]; // ImGui text input buffer
+    bool                _annotation_dirty{false};
+    // ------------------------
 
     std::string get_min_system_version();
     void printDiagnostic();

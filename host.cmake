@@ -1,6 +1,7 @@
 find_package(SQLite3 REQUIRED)
 
 add_executable(pkgj_cli
+  src/annotationdb.cpp
   src/comppackdb.cpp
   src/db.cpp
   src/download.cpp

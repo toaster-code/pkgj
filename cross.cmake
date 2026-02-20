@@ -51,6 +51,7 @@ add_assets(assets
 add_executable(pkgj
   ${assets}
   src/aes128.cpp
+  src/annotationdb.cpp
   src/bgdl.cpp
   src/comppackdb.cpp
   src/config.cpp

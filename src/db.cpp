@@ -490,6 +490,9 @@ void TitleDatabase::reload(
                         last_modification,
                         app_version,
                         fw_version,
+                        /*selected=*/false,
+                        /*user_flag=*/UserFlag::None,
+                        /*user_comment=*/"",
                 });
         }
         catch (const std::exception& e)

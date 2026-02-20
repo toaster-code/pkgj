@@ -4,6 +4,7 @@ extern "C"
 {
 #include "style.h"
 }
+#include "annotationdb.hpp"
 #include "bgdl.hpp"
 #include "comppackdb.hpp"
 #include "config.hpp"
@@ -78,6 +79,7 @@ std::set<std::string> installed_games;
 std::set<std::string> installed_themes;
 
 std::unique_ptr<GameView> gameview;
+std::unique_ptr<AnnotationDatabase> annotation_db;
 bool need_refresh = true;
 bool runtime_install_queued = false;
 std::string content_to_refresh;
@@ -246,6 +248,7 @@ void pkgi_refresh_thread(void)
         first_item = 0;
         selected_item = 0;
         configure_db(db.get(), search_active ? search_text : NULL, &config);
+        pkgi_apply_annotations();
     }
     catch (const std::exception& e)
     {
@@ -605,7 +608,17 @@ void pkgi_do_main(Downloader& downloader, pkgi_input* input)
                         PKGI_MAIN_COLUMN_PADDING - sizew - col_name,
                 line_height);
         item->selected = std::find(selected_items.begin(), selected_items.end(), item) != selected_items.end();
-        pkgi_draw_text(col_name, y, item->selected ? PKGI_COLOR_TEXT_SELECTED : PKGI_COLOR_TEXT , item->name.c_str());
+        {
+            std::string display_name;
+            if (item->user_flag != UserFlag::None)
+                display_name = fmt::format("{} {}",
+                        user_flag_symbol(item->user_flag), item->name);
+            else
+                display_name = item->name;
+            pkgi_draw_text(col_name, y,
+                    item->selected ? PKGI_COLOR_TEXT_SELECTED : PKGI_COLOR_TEXT,
+                    display_name.c_str());
+        }
         pkgi_clip_remove();
 
         y += font_height + PKGI_MAIN_ROW_PADDING;
@@ -675,7 +688,8 @@ void pkgi_do_main(Downloader& downloader, pkgi_input* input)
                     &downloader,
                     item,
                     comppack_db_games->get(item->titleid),
-                    comppack_db_updates->get(item->titleid));
+                    comppack_db_updates->get(item->titleid),
+                    annotation_db.get());
         else if (mode == ModeThemes || mode == ModeDemos)
         {
             pkgi_start_download(downloader, *item);
@@ -1041,11 +1055,26 @@ void reposition(void)
     }
 }
 
+void pkgi_apply_annotations()
+{
+    if (!annotation_db)
+        return;
+    for (uint32_t i = 0; i < db->count(); ++i)
+    {
+        auto* item = db->get(i);
+        if (!item) continue;
+        const auto ann = annotation_db->get(item->titleid);
+        item->user_flag    = ann.flag;
+        item->user_comment = ann.comment;
+    }
+}
+
 void pkgi_reload()
 {
     try
     {
         configure_db(db.get(), search_active ? search_text : NULL, &config);
+        pkgi_apply_annotations();
     }
     catch (const std::exception& e)
     {
@@ -1217,6 +1246,10 @@ int main()
         bottom_y = VITA_HEIGHT - 2 * font_height - PKGI_MAIN_ROW_PADDING;
 
         pkgi_open_db();
+
+        annotation_db = std::make_unique<AnnotationDatabase>(
+                std::string(pkgi_get_config_folder()) + "/annotations.db");
+        pkgi_apply_annotations();
 
         pkgi_texture background = pkgi_load_png(background);
 
