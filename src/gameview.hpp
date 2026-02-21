@@ -61,8 +61,8 @@ private:
     // --- Annotation state ---
     AnnotationDatabase* _annotationDb;
     UserAnnotation      _annotation;       // working copy
-    char                _comment_buf[512]; // ImGui text input buffer
-    bool                _annotation_dirty{false};
+    char                _comment_buf[512]; // buffer for IME result
+    bool                _ime_active{false}; // true while virtual keyboard is open
     // ------------------------
 
     std::string get_min_system_version();

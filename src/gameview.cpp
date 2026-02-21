@@ -5,6 +5,7 @@
 #include "dialog.hpp"
 #include "file.hpp"
 #include "imgui.hpp"
+#include "pkgi.hpp"
 extern "C"
 {
 #include "style.h"
@@ -161,11 +162,21 @@ void GameView::render()
     // ---- Personal Notes ----
     if (_annotationDb)
     {
+        // Check every frame if the virtual keyboard finished
+        if (_ime_active && pkgi_dialog_input_update())
+        {
+            pkgi_dialog_input_get_text(_comment_buf, sizeof(_comment_buf));
+            _annotation.comment = _comment_buf;
+            _annotationDb->set(_item->titleid, _annotation);
+            _item->user_comment = _annotation.comment;
+            _ime_active = false;
+        }
+
         ImGui::Separator();
         ImGui::Text("Personal Notes");
         ImGui::Text(" ");
 
-        // Flag picker: one button per flag value
+        // Flag picker: saves immediately on click
         ImGui::Text("Flag:");
         for (int fi = 0; fi < UserFlagCount; ++fi)
         {
@@ -178,7 +189,8 @@ void GameView::render()
             if (ImGui::Button(user_flag_label(f)))
             {
                 _annotation.flag = f;
-                _annotation_dirty = true;
+                _annotationDb->set(_item->titleid, _annotation);
+                _item->user_flag = f;
             }
             if (active)
                 ImGui::PopStyleColor();
@@ -188,32 +200,18 @@ void GameView::render()
 
         ImGui::Text(" ");
         ImGui::Text("Comment:");
-        // Multi-line text input; size adapts to available width
-        const float input_width =
-                _image_fetcher.get_texture() == nullptr
-                        ? ImGui::GetContentRegionAvail().x
-                        : GameViewWidth - 320.f;
-        if (ImGui::InputTextMultiline(
-                    "##ann_comment",
-                    _comment_buf,
-                    sizeof(_comment_buf),
-                    ImVec2(input_width, ImGui::GetTextLineHeight() * 3)))
-            _annotation_dirty = true;
-
+        ImGui::TextWrapped(
+                "%s",
+                _annotation.comment.empty() ? "(no comment)"
+                                            : _annotation.comment.c_str());
         ImGui::Text(" ");
-        if (_annotation_dirty)
+        // Button opens the Vita virtual keyboard pre-filled with current comment
+        if (ImGui::Button("Edit Comment"))
         {
-            if (ImGui::Button("Save Notes"))
-            {
-                _annotation.comment = _comment_buf;
-                _annotationDb->set(_item->titleid, _annotation);
-                // Keep DbItem in sync so the list shows the flag immediately
-                _item->user_flag    = _annotation.flag;
-                _item->user_comment = _annotation.comment;
-                _annotation_dirty = false;
-            }
-            ImGui::SameLine();
+            pkgi_dialog_input_text("Comment", _comment_buf);
+            _ime_active = true;
         }
+        ImGui::SameLine();
         if (ImGui::Button("Clear Notes"))
         {
             _annotationDb->remove(_item->titleid);
@@ -221,7 +219,7 @@ void GameView::render()
             _comment_buf[0] = '\0';
             _item->user_flag    = UserFlag::None;
             _item->user_comment.clear();
-            _annotation_dirty = false;
+            _ime_active = false;
         }
     }
     // ---- end Personal Notes ----
