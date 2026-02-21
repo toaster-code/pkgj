@@ -23,6 +23,14 @@ typedef struct Config
     std::string psp_dlcs_url;
 
     std::string comppack_url;
+
+    // Screenshot/thumbnail image settings
+    // thumbnail_url    : base URL — image fetched as {thumbnail_url}/{titleid}.jpg
+    //                    Leave empty to disable network fetching.
+    // thumbnail_folder : local directory where thumbnails are stored/cached
+    //                    Leave empty to use the default: ux0:pkgj/thumbnails
+    std::string thumbnail_url;
+    std::string thumbnail_folder;
 } Config;
 
 Config pkgi_load_config();

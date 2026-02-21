@@ -8,6 +8,9 @@
 #include "imagefetcher.hpp"
 #include "install.hpp"
 #include "patchinfofetcher.hpp"
+#include "thumbnailfetcher.hpp"
+
+#include <memory>
 
 #include <optional>
 
@@ -57,6 +60,7 @@ private:
 
     PatchInfoFetcher _patch_info_fetcher;
     ImageFetcher _image_fetcher;
+    std::unique_ptr<ThumbnailFetcher> _thumbnail_fetcher;
 
     // --- Annotation state ---
     AnnotationDatabase* _annotationDb;

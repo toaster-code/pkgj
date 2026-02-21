@@ -38,6 +38,14 @@ GameView::GameView(
     std::strncpy(_comment_buf, _annotation.comment.c_str(),
                  sizeof(_comment_buf) - 1);
     _comment_buf[sizeof(_comment_buf) - 1] = '\0';
+
+    // Thumbnail fetcher — folder defaults to ux0:pkgj/thumbnails if not set
+    const std::string thumb_folder = config->thumbnail_folder.empty()
+            ? "ux0:pkgj/thumbnails"
+            : config->thumbnail_folder;
+    _thumbnail_fetcher = std::make_unique<ThumbnailFetcher>(
+            item->titleid, thumb_folder, config->thumbnail_url);
+
     refresh();
 }
 
@@ -175,6 +183,26 @@ void GameView::render()
         ImGui::Separator();
         ImGui::Text("Personal Notes");
         ImGui::Text(" ");
+
+        // Thumbnail screenshot (loaded from folder or downloaded in background)
+        {
+            auto thumb_tex = _thumbnail_fetcher->get_texture();
+            if (thumb_tex)
+            {
+                float tw =
+                        static_cast<float>(vita2d_texture_get_width(thumb_tex));
+                float th =
+                        static_cast<float>(vita2d_texture_get_height(thumb_tex));
+                const float max_w = 190.f;
+                if (tw > max_w)
+                {
+                    th = th * max_w / tw;
+                    tw = max_w;
+                }
+                ImGui::Image(thumb_tex, ImVec2(tw, th));
+                ImGui::Text(" ");
+            }
+        }
 
         // Flag picker: saves immediately on click
         ImGui::Text("Flag:");
