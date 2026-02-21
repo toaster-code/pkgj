@@ -738,7 +738,21 @@ void pkgi_do_main(Downloader& downloader, pkgi_input* input)
     }
     else if (input && (input->pressed & PKGI_BUTTON_S))
     {
-        if (mode == ModeDlcs) 
+        if (mode == ModeGames)
+        {
+            input->pressed &= ~PKGI_BUTTON_S;
+            DbItem* item = db->get(selected_item);
+            if (item && annotation_db)
+            {
+                // Cycle flag forward (wraps around)
+                const int next = (static_cast<int>(item->user_flag) + 1) % UserFlagCount;
+                item->user_flag = static_cast<UserFlag>(next);
+                UserAnnotation ann = annotation_db->get(item->titleid);
+                ann.flag = item->user_flag;
+                annotation_db->set(item->titleid, ann);
+            }
+        }
+        else if (mode == ModeDlcs) 
         {
             input->pressed &= ~PKGI_BUTTON_S;
             DbItem* item = db->get(selected_item);
@@ -998,7 +1012,10 @@ void pkgi_do_tail(Downloader& downloader)
     else
     {
         if (mode == ModeGames)
+        {
             bottom_text += fmt::format("{} details ", pkgi_get_ok_str());
+            bottom_text += PKGI_UTF8_S " flag ";
+        }
         else
         {
             DbItem* item = db->get(selected_item);
