@@ -125,6 +125,11 @@ case "$TARGET" in
             --output-folder .
 
         # Source the generated cross-compile env (sets CC/CXX/AR/STRIP/etc)
+        # Pre-initialize variables that the generated file appends to, so that
+        # set -u (nounset) does not abort when they are not already in the
+        # environment (LD_LIBRARY_PATH / DYLD_LIBRARY_PATH are often absent).
+        export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:-}"
+        export DYLD_LIBRARY_PATH="${DYLD_LIBRARY_PATH:-}"
         # shellcheck disable=SC1091
         [[ -f conanbuildenv-relwithdebinfo-armv7.sh ]] && \
             source conanbuildenv-relwithdebinfo-armv7.sh

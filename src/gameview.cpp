@@ -13,8 +13,12 @@ extern "C"
 
 namespace
 {
-constexpr unsigned GameViewWidth = VITA_WIDTH * 0.8;
+constexpr unsigned GameViewWidth  = VITA_WIDTH  * 0.8;
 constexpr unsigned GameViewHeight = VITA_HEIGHT * 0.8;
+
+// Dimensions of the framed thumbnail panel in the top-right of the info area
+constexpr float kImagePanelW = 200.f;
+constexpr float kImagePanelH = 170.f;
 }
 
 GameView::GameView(
@@ -66,9 +70,89 @@ void GameView::render()
                     ImGuiWindowFlags_NoCollapse |
                     ImGuiWindowFlags_NoSavedSettings);
 
+    // ── Thumbnail panel — drawn directly onto the window draw list ──────────
+    //
+    // Using GetWindowDrawList() anchors the panel at absolute screen
+    // coordinates, which gives two important properties:
+    //   1. The panel never scrolls off-screen when the window is scrolled
+    //      via gamepad navigation — it stays fixed at the top-right corner.
+    //   2. Draw list primitives are completely outside ImGui's widget and
+    //      navigation system, so the D-pad can never focus or select the image.
+    {
+        auto* thumb_tex = _thumbnail_fetcher->get_texture();
+
+        // Anchor panel using only the window's fixed screen position +
+        // compile-time constants. This is 100% independent of scroll state,
+        // content region, or any internal ImGui window state that can change
+        // when gamepad navigation scrolls the content.
+        //   x: right edge of the window (pos + fixed width) minus panel width and padding
+        //   y: just below the title bar (pos + title bar height + padding)
+        const ImGuiStyle& style = ImGui::GetStyle();
+        ImVec2 win_pos = ImGui::GetWindowPos();
+        const float title_bar_h = ImGui::GetFrameHeight(); // title bar height
+
+        ImVec2 panel_min(
+                win_pos.x + (float)GameViewWidth
+                        - style.WindowPadding.x - kImagePanelW,
+                win_pos.y + title_bar_h + style.WindowPadding.y);
+        ImVec2 panel_max(
+                panel_min.x + kImagePanelW,
+                panel_min.y + kImagePanelH);
+
+        ImDrawList* dl = ImGui::GetForegroundDrawList();
+
+        // Background fill and border
+        dl->AddRectFilled(panel_min, panel_max, IM_COL32(20, 20, 20, 230), 3.f);
+        dl->AddRect(panel_min, panel_max, IM_COL32(110, 110, 110, 255), 3.f);
+
+        if (thumb_tex)
+        {
+            float tw = static_cast<float>(vita2d_texture_get_width(thumb_tex));
+            float th = static_cast<float>(vita2d_texture_get_height(thumb_tex));
+            // Scale to fit inside the panel with a small margin, keeping ratio
+            const float inner_w = kImagePanelW - 6.f;
+            const float inner_h = kImagePanelH - 6.f;
+            if (tw > inner_w) { th = th * inner_w / tw; tw = inner_w; }
+            if (th > inner_h) { tw = tw * inner_h / th; th = inner_h; }
+            // Centre the image inside the panel
+            ImVec2 img_min(
+                    panel_min.x + (kImagePanelW - tw) * 0.5f,
+                    panel_min.y + (kImagePanelH - th) * 0.5f);
+            ImVec2 img_max(img_min.x + tw, img_min.y + th);
+            dl->AddImage((ImTextureID)thumb_tex, img_min, img_max);
+        }
+        else
+        {
+            // Two centred lines when there is no image yet
+            const char* line1 = "No image";
+            const char* line2 = "available";
+            ImVec2 s1 = ImGui::CalcTextSize(line1);
+            ImVec2 s2 = ImGui::CalcTextSize(line2);
+            const float gap     = 2.f;
+            const float total_h = s1.y + gap + s2.y;
+            const ImU32 dim     = IM_COL32(160, 160, 160, 200);
+            dl->AddText(
+                    ImVec2(panel_min.x + (kImagePanelW - s1.x) * 0.5f,
+                           panel_min.y + (kImagePanelH - total_h) * 0.5f),
+                    dim, line1);
+            dl->AddText(
+                    ImVec2(panel_min.x + (kImagePanelW - s2.x) * 0.5f,
+                           panel_min.y + (kImagePanelH - total_h) * 0.5f
+                                   + s1.y + gap),
+                    dim, line2);
+        }
+    }
+    // ── end thumbnail panel ──────────────────────────────────────────────────
+
+    // Reserve the right column for the image panel; text wraps within the rest.
+    // PushTextWrapPos takes a window-local X coordinate.
+    // Use only compile-time constants so this is scroll-independent.
     ImGui::PushTextWrapPos(
-            _image_fetcher.get_texture() == nullptr ? 0.f
-                                                    : GameViewWidth - 300.f);
+            (float)GameViewWidth
+            - ImGui::GetStyle().WindowPadding.x
+            - kImagePanelW
+            - ImGui::GetStyle().ItemSpacing.x);
+
     ImGui::Text(fmt::format("Firmware version: {}", pkgi_get_system_version())
                         .c_str());
     ImGui::Text(
@@ -155,18 +239,6 @@ void GameView::render()
         }
     }
 
-    auto tex = _image_fetcher.get_texture();
-    // Display game image
-    if (tex != nullptr)
-    {
-        int tex_w = vita2d_texture_get_width(tex);
-        int tex_h = vita2d_texture_get_height(tex);
-        float tex_x = ImGui::GetWindowContentRegionMax().x - tex_w;
-        float tex_y = ImGui::GetWindowContentRegionMin().y;
-        ImGui::SetCursorPos(ImVec2(tex_x, tex_y));
-        ImGui::Image(tex, ImVec2(tex_w, tex_h));
-    }
-
     // ---- Personal Notes ----
     if (_annotationDb)
     {
@@ -183,26 +255,6 @@ void GameView::render()
         ImGui::Separator();
         ImGui::Text("Personal Notes");
         ImGui::Text(" ");
-
-        // Thumbnail screenshot (loaded from folder or downloaded in background)
-        {
-            auto thumb_tex = _thumbnail_fetcher->get_texture();
-            if (thumb_tex)
-            {
-                float tw =
-                        static_cast<float>(vita2d_texture_get_width(thumb_tex));
-                float th =
-                        static_cast<float>(vita2d_texture_get_height(thumb_tex));
-                const float max_w = 190.f;
-                if (tw > max_w)
-                {
-                    th = th * max_w / tw;
-                    tw = max_w;
-                }
-                ImGui::Image(thumb_tex, ImVec2(tw, th));
-                ImGui::Text(" ");
-            }
-        }
 
         // Flag picker: saves immediately on click
         ImGui::Text("Flag:");
