@@ -40,6 +40,12 @@ vita2d_texture* ThumbnailFetcher::get_texture()
 
 void ThumbnailFetcher::do_request()
 {
+    // Timeout de 8 segundos
+    #include <chrono>
+    using namespace std::chrono;
+    auto start_time = steady_clock::now();
+    const auto timeout = seconds(8);
+
     try
     {
         // 1. Try loading from local cached file
@@ -83,6 +89,15 @@ void ThumbnailFetcher::do_request()
 
         while (true)
         {
+            // Timeout check
+            if (steady_clock::now() - start_time > timeout)
+            {
+                LOGF("thumbnail fetch timed out after {} seconds: {}", timeout.count(), _url);
+                std::lock_guard<Mutex> lock(_mutex);
+                _http = nullptr;
+                return;
+            }
+
             // Check abort between each chunk
             {
                 std::lock_guard<Mutex> lock(_mutex);

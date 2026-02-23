@@ -738,6 +738,18 @@ void pkgi_do_main(Downloader& downloader, pkgi_input* input)
     }
     else if (input && (input->pressed & PKGI_BUTTON_S))
     {
+        /*
+        * Annotation Flag Cycling Logic
+        * ----------------------------
+        * This block handles user flag annotation for games.
+        * - When the S button is pressed in ModeGames, the currently selected game's user_flag is cycled forward (wraps around).
+        * - The new flag is saved immediately to the annotation database (AnnotationDatabase).
+        * - Flags are defined in src/annotationdb.hpp as UserFlag enum.
+        * - The annotation system allows users to mark games with custom statuses (Favorite, Good, Bad, Completed, etc.).
+        * - See also: src/annotationdb.cpp, src/db.hpp, src/gameview.cpp for UI integration.
+        *
+        * Related context: .github/copilot-instructions.md (Annotation Feature section)
+        */
         if (mode == ModeGames)
         {
             input->pressed &= ~PKGI_BUTTON_S;
