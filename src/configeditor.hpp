@@ -3,17 +3,19 @@
 #include <string>
 #include <vector>
 
+#include "config.hpp"
+
 // ConfigEditor — full-screen ImGui panel that lets the user view and edit
 // every line of config.txt using the Vita native IME keyboard.
 //
-// Open it by setting config_editor = std::make_unique<ConfigEditor>() in
-// pkgi.cpp (triggered by MenuResultOpenConfigEditor from the menu).
+// Open it by setting config_editor = std::make_unique<ConfigEditor>(config)
+// in pkgi.cpp (triggered by MenuResultOpenConfigEditor from the menu).
 // Call render() once per frame.  Check is_closed() to know when to destroy it.
 // If was_saved() is true after close, call pkgi_load_config() to reload.
 class ConfigEditor
 {
 public:
-    ConfigEditor();
+    explicit ConfigEditor(Config& config);
     ~ConfigEditor() = default;
 
     void render();
@@ -29,6 +31,7 @@ private:
     void load();
     void save();
 
+    Config&                  _config;
     std::string              _path;
     std::vector<std::string> _lines;
     int                      _selected{0};

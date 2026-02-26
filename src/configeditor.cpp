@@ -20,7 +20,8 @@ constexpr float EditorH = VITA_HEIGHT * 0.8f;
 
 // ── Construction / destruction ───────────────────────────────────────────────
 
-ConfigEditor::ConfigEditor()
+ConfigEditor::ConfigEditor(Config& config)
+    : _config(config)
 {
     _path = fmt::format("{}/config.txt", pkgi_get_config_folder());
     load();
@@ -110,6 +111,27 @@ void ConfigEditor::render()
     const float footer_h =
             ImGui::GetFrameHeightWithSpacing() + ImGui::GetStyle().ItemSpacing.y;
 
+    // ── Thumbnail panel size selector ─────────────────────────────────────────
+    ImGui::Text("Thumbnail panel:");
+    ImGui::SameLine();
+    {
+        const char* size_labels[] = { "Off", "Small", "Medium", "Large" };
+        for (int s = 0; s < 4; ++s)
+        {
+            if (s > 0) ImGui::SameLine();
+            const bool active = (_config.thumbnail_size == s);
+            if (active)
+                ImGui::PushStyleColor(
+                        ImGuiCol_Button,
+                        ImVec4(0.2f, 0.6f, 0.2f, 1.f));
+            if (ImGui::Button(size_labels[s]))
+                _config.thumbnail_size = s;
+            if (active)
+                ImGui::PopStyleColor();
+        }
+    }
+    ImGui::Separator();
+
     // ── Scrollable row list ───────────────────────────────────────────────────
     ImGui::BeginChild(
             "##rows",
@@ -166,9 +188,9 @@ void ConfigEditor::render()
     // ── Footer ────────────────────────────────────────────────────────────────
     ImGui::Separator();
     ImGui::TextDisabled(
-            PKGI_UTF8_X " Edit line    "
-            PKGI_UTF8_T " Save & close    "
-            PKGI_UTF8_O " Discard");
+            "[Cross] Edit line    "
+            "[Triangle] Save & close    "
+            "[Circle] Discard");
 
     ImGui::End();
 }

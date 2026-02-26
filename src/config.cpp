@@ -1,5 +1,7 @@
 #include "config.hpp"
 
+#include <cstdlib>
+
 #include <fmt/format.h>
 
 #include "file.hpp"
@@ -181,6 +183,7 @@ Config pkgi_load_config()
         config.comppack_url = default_comppack_url;
         config.thumbnail_url = "";
         config.thumbnail_folder = "";
+        config.thumbnail_size = 2;
         config.sort = SortByName;
         config.order = SortAscending;
         config.filter = DbFilterAll;
@@ -247,6 +250,9 @@ Config pkgi_load_config()
                 config.thumbnail_url = value;
             else if (pkgi_stricmp(key, "thumbnail_folder") == 0)
                 config.thumbnail_folder = value;
+            else if (pkgi_stricmp(key, "thumbnail_size") == 0)
+                config.thumbnail_size = static_cast<int>(
+                        std::strtol(value, nullptr, 10));
             else if (pkgi_stricmp(key, "sort") == 0)
                 config.sort = parse_sort(value, SortByName);
             else if (pkgi_stricmp(key, "order") == 0)
@@ -332,6 +338,11 @@ void pkgi_save_config(const Config& config)
                 sizeof(data) - len,
                 "thumbnail_folder %s\n",
                 config.thumbnail_folder.c_str());
+    len += pkgi_snprintf(
+            data + len,
+            sizeof(data) - len,
+            "thumbnail_size %d\n",
+            config.thumbnail_size);
     if (!config.install_psp_psx_location.empty())
         len += pkgi_snprintf(
                 data + len,

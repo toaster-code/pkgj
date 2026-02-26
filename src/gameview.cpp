@@ -16,9 +16,16 @@ namespace
 constexpr unsigned GameViewWidth  = VITA_WIDTH  * 0.8;
 constexpr unsigned GameViewHeight = VITA_HEIGHT * 0.8;
 
-// Dimensions of the framed thumbnail panel in the top-right of the info area
-constexpr float kImagePanelW = 200.f;
-constexpr float kImagePanelH = 170.f;
+// Thumbnail panel size presets indexed by config.thumbnail_size
+// 0=off, 1=small, 2=medium, 3=large
+struct ThumbSize { float w, h; };
+constexpr ThumbSize kThumbSizes[] = {
+    {  0.f,   0.f}, // 0 off
+    {130.f, 110.f}, // 1 small
+    {200.f, 170.f}, // 2 medium
+    {260.f, 221.f}, // 3 large (previous default)
+};
+constexpr int kThumbSizeCount = 4;
 }
 
 GameView::GameView(
@@ -79,8 +86,15 @@ void GameView::render()
     //   2. Draw list primitives are completely outside ImGui's widget and
     //      navigation system, so the D-pad can never focus or select the image.
     {
+        const int tsz = std::max(0, std::min(
+                _config->thumbnail_size, kThumbSizeCount - 1));
+        const float kImagePanelW = kThumbSizes[tsz].w;
+        const float kImagePanelH = kThumbSizes[tsz].h;
+
         auto* thumb_tex = _thumbnail_fetcher->get_texture();
 
+        if (kImagePanelW > 0.f)
+        {
         // Anchor panel using only the window's fixed screen position +
         // compile-time constants. This is 100% independent of scroll state,
         // content region, or any internal ImGui window state that can change
@@ -141,17 +155,25 @@ void GameView::render()
                                    + s1.y + gap),
                     dim, line2);
         }
+        } // end if (kImagePanelW > 0.f)
     }
     // ── end thumbnail panel ──────────────────────────────────────────────────
 
     // Reserve the right column for the image panel; text wraps within the rest.
     // PushTextWrapPos takes a window-local X coordinate.
-    // Use only compile-time constants so this is scroll-independent.
-    ImGui::PushTextWrapPos(
-            (float)GameViewWidth
-            - ImGui::GetStyle().WindowPadding.x
-            - kImagePanelW
-            - ImGui::GetStyle().ItemSpacing.x);
+    // When thumbnail is off (size 0), use full-width wrap (pos = 0).
+    {
+        const int tsz = std::max(0, std::min(
+                _config->thumbnail_size, kThumbSizeCount - 1));
+        const float panelW = kThumbSizes[tsz].w;
+        ImGui::PushTextWrapPos(
+                panelW > 0.f
+                ? (float)GameViewWidth
+                        - ImGui::GetStyle().WindowPadding.x
+                        - panelW
+                        - ImGui::GetStyle().ItemSpacing.x
+                : 0.f);
+    }
 
     ImGui::Text(fmt::format("Firmware version: {}", pkgi_get_system_version())
                         .c_str());
@@ -204,6 +226,10 @@ void GameView::render()
             start_download_package();
     }
     ImGui::SetItemDefaultFocus();
+    // Ergonomia: quando o primeiro botão está em foco (usuário voltou ao topo
+    // da navegação), garante que o scroll da janela volta ao zero.
+    if (ImGui::IsItemFocused())
+        ImGui::SetScrollY(0.0f);
 
     if (_base_comppack)
     {

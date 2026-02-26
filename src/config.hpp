@@ -29,8 +29,10 @@ typedef struct Config
     //                    Leave empty to disable network fetching.
     // thumbnail_folder : local directory where thumbnails are stored/cached
     //                    Leave empty to use the default: ux0:pkgj/thumbnails
+    // thumbnail_size   : panel size preset — 0=off, 1=small, 2=medium (default), 3=large
     std::string thumbnail_url;
     std::string thumbnail_folder;
+    int thumbnail_size{2};
 } Config;
 
 Config pkgi_load_config();

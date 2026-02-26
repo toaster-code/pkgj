@@ -1490,7 +1490,7 @@ int main()
                         pkgi_save_config(config);
                         break;
                     case MenuResultOpenConfigEditor:
-                        config_editor = std::make_unique<ConfigEditor>();
+                        config_editor = std::make_unique<ConfigEditor>(config);
                         break;
                     case MenuResultRefresh:
                         pkgi_refresh_list();
