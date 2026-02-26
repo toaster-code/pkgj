@@ -26,6 +26,7 @@ typedef enum
     MenuSort,
     MenuFilter,
     MenuRefresh,
+    MenuConfigEdit,
     MenuShow,
 } MenuType;
 
@@ -55,6 +56,7 @@ static const MenuEntry menu_entries[] = {
         {MenuFilter, "Installed games only", DbFilterInstalled},
 
         {MenuRefresh, "Refresh", 0},
+        {MenuConfigEdit, "Edit config.txt", 0},
 
         {MenuShow, "Show games", 1},
         {MenuShow, "Show DLCs", 2},
@@ -193,6 +195,12 @@ int pkgi_do_menu(pkgi_input* input)
             menu_delta = -1;
             return 1;
         }
+        else if (type == MenuConfigEdit)
+        {
+            menu_result = MenuResultOpenConfigEditor;
+            menu_delta = -1;
+            return 1;
+        }
         else if (type == MenuShow)
         {
             switch (menu_entries[menu_selected].value)
@@ -284,7 +292,7 @@ int pkgi_do_menu(pkgi_input* input)
 
         char text[64];
         if (type == MenuSearch || type == MenuSearchClear || type == MenuText ||
-            type == MenuRefresh || type == MenuShow)
+            type == MenuRefresh || type == MenuConfigEdit || type == MenuShow)
         {
             pkgi_strncpy(text, sizeof(text), entry->text);
         }

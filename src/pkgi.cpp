@@ -13,6 +13,7 @@ extern "C"
 #include "download.hpp"
 #include "downloader.hpp"
 #include "gameview.hpp"
+#include "configeditor.hpp"
 #include "imgui.hpp"
 #include "install.hpp"
 #include "menu.hpp"
@@ -82,6 +83,7 @@ std::set<std::string> installed_games;
 std::set<std::string> installed_themes;
 
 std::unique_ptr<GameView> gameview;
+std::unique_ptr<ConfigEditor> config_editor;
 std::unique_ptr<AnnotationDatabase> annotation_db;
 bool need_refresh = true;
 bool runtime_install_queued = false;
@@ -1330,7 +1332,7 @@ int main()
             io.DisplaySize.x = VITA_WIDTH;
             io.DisplaySize.y = VITA_HEIGHT;
 
-            if (gameview || pkgi_dialog_is_open())
+            if (gameview || config_editor || pkgi_dialog_is_open())
             {
                 io.AddKeyEvent(
                         ImGuiKey_GamepadDpadUp, input.pressed & PKGI_BUTTON_UP);
@@ -1348,6 +1350,15 @@ int main()
                         input.pressed & pkgi_ok_button());
                 if (input.pressed & pkgi_cancel_button() && gameview)
                     gameview->close();
+
+                // Config editor: Triangle saves, Circle discards
+                if (config_editor)
+                {
+                    if (input.pressed & PKGI_BUTTON_T)
+                        config_editor->save_and_close();
+                    else if (input.pressed & pkgi_cancel_button())
+                        config_editor->close();
+                }
 
                 input.active = 0;
                 input.pressed = 0;
@@ -1391,7 +1402,7 @@ int main()
             case StateMain:
                 pkgi_do_main(
                         downloader,
-                        pkgi_dialog_is_open() || pkgi_menu_is_open() ? NULL
+                        pkgi_dialog_is_open() || pkgi_menu_is_open() || config_editor ? NULL
                                                                      : &input);
                 break;
             }
@@ -1405,12 +1416,23 @@ int main()
                     gameview = nullptr;
             }
 
+            if (config_editor)
+            {
+                config_editor->render();
+                if (config_editor->is_closed())
+                {
+                    if (config_editor->was_saved())
+                        config = pkgi_load_config();
+                    config_editor.reset();
+                }
+            }
+
             if (pkgi_dialog_is_open())
             {
                 pkgi_do_dialog();
             }
 
-            if (pkgi_dialog_input_update())
+            if (pkgi_dialog_input_update() && !config_editor)
             {
                 search_active = 1;
                 pkgi_dialog_input_get_text(search_text, sizeof(search_text));
@@ -1466,6 +1488,9 @@ int main()
                     case MenuResultAccept:
                         pkgi_menu_get(&config);
                         pkgi_save_config(config);
+                        break;
+                    case MenuResultOpenConfigEditor:
+                        config_editor = std::make_unique<ConfigEditor>();
                         break;
                     case MenuResultRefresh:
                         pkgi_refresh_list();

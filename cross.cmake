@@ -53,6 +53,7 @@ add_executable(pkgj
   src/aes128.cpp
   src/annotationdb.cpp
   src/bgdl.cpp
+  src/configeditor.cpp
   src/comppackdb.cpp
   src/config.cpp
   src/db.cpp
