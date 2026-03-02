@@ -19,7 +19,6 @@ typedef enum
     MenuResultShowPspGames,
     MenuResultShowPspDlcs,
     MenuResultShowPsmGames,
-    MenuResultOpenConfigEditor,
 } MenuResult;
 
 typedef struct Config Config;
