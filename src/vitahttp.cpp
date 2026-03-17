@@ -8,6 +8,8 @@
 #include <string>
 #include <vector>
 
+#include <psp2/kernel/threadmgr.h>
+
 #define PKGI_USER_AGENT "libhttp/3.65 (PS Vita)"
 
 // Max bytes to buffer ahead of consumer. When the buffer grows beyond this
@@ -50,9 +52,28 @@ static size_t pkgi_curl_write(
     return total;
 }
 
+static void pkgi_http_cleanup(pkgi_http* http)
+{
+    if (http->multi)
+    {
+        if (http->curl)
+            curl_multi_remove_handle(http->multi, http->curl);
+        curl_multi_cleanup(http->multi);
+        http->multi = nullptr;
+    }
+    if (http->curl)
+    {
+        curl_easy_cleanup(http->curl);
+        http->curl = nullptr;
+    }
+    http->buffer.clear();
+    http->buffer.shrink_to_fit();
+    http->used = false;
+}
+
 // Drive the multi handle until at least min_bytes are buffered, or the
-// transfer completes, or an error occurs.
-static void pump(pkgi_http* http, size_t min_bytes)
+// transfer completes. Returns false on curl-level error (fills errbuf).
+static bool pump(pkgi_http* http, size_t min_bytes, std::string& errbuf)
 {
     while (!http->transfer_done &&
            (http->buffer.size() - http->buffer_pos) < min_bytes)
@@ -60,8 +81,11 @@ static void pump(pkgi_http* http, size_t min_bytes)
         int still_running = 0;
         CURLMcode mc = curl_multi_perform(http->multi, &still_running);
         if (mc != CURLM_OK)
-            throw HttpError(
-                    fmt::format("curl_multi_perform: {}", curl_multi_strerror(mc)));
+        {
+            errbuf = fmt::format(
+                    "curl_multi_perform: {}", curl_multi_strerror(mc));
+            return false;
+        }
 
         // Collect finished messages
         int msgs_left = 0;
@@ -80,16 +104,18 @@ static void pump(pkgi_http* http, size_t min_bytes)
             break;
         }
 
+        // Avoid cpu spin: sleep 1ms instead of curl_multi_wait
+        // (curl_multi_wait uses select() on SceNet sockets which can crash)
         if (!http->transfer_done &&
             (http->buffer.size() - http->buffer_pos) < min_bytes)
         {
-            curl_multi_wait(http->multi, nullptr, 0, 50 /*ms*/, nullptr);
-            // If we were paused because the buffer was full but caller
-            // drained it, resume the easy handle
+            sceKernelDelayThread(1000 /*1 ms*/);
+            // Resume a paused transfer if buffer has been drained enough
             if ((http->buffer.size() - http->buffer_pos) < PKGI_HTTP_BUFFER_MAX)
                 curl_easy_pause(http->curl, CURLPAUSE_CONT);
         }
     }
+    return true;
 }
 } // namespace
 
@@ -98,21 +124,7 @@ VitaHttp::~VitaHttp()
     if (_http)
     {
         LOG("http close");
-        if (_http->multi)
-        {
-            if (_http->curl)
-                curl_multi_remove_handle(_http->multi, _http->curl);
-            curl_multi_cleanup(_http->multi);
-            _http->multi = nullptr;
-        }
-        if (_http->curl)
-        {
-            curl_easy_cleanup(_http->curl);
-            _http->curl = nullptr;
-        }
-        _http->buffer.clear();
-        _http->buffer.shrink_to_fit();
-        _http->used = false;
+        pkgi_http_cleanup(_http);
     }
 }
 
@@ -181,22 +193,23 @@ void VitaHttp::start(const std::string& url, uint64_t offset)
     curl_multi_add_handle(http->multi, http->curl);
 
     // Pump until we have at least 1 byte so that status/content-length are
-    // available (the response headers have been processed by then).
-    pump(http, 1);
-
-    // If transfer finished immediately with no data (e.g. 404), that's fine —
-    // check_status() will throw at the right time.
-    if (!http->transfer_done && http->transfer_result != CURLE_OK)
+    // available (response headers have been processed by then).
+    std::string errbuf;
+    if (!pump(http, 1, errbuf))
     {
-        curl_multi_remove_handle(http->multi, http->curl);
-        curl_multi_cleanup(http->multi);
-        curl_easy_cleanup(http->curl);
-        http->multi = nullptr;
-        http->curl = nullptr;
-        throw HttpError(fmt::format(
+        pkgi_http_cleanup(http);
+        throw HttpError(errbuf);
+    }
+
+    // Check for curl-level transfer error (e.g. TLS failure, DNS error)
+    if (http->transfer_done && http->transfer_result != CURLE_OK)
+    {
+        std::string err = fmt::format(
                 "sceHttpSendRequest failed: curl error {}: {}",
                 static_cast<int>(http->transfer_result),
-                curl_easy_strerror(http->transfer_result)));
+                curl_easy_strerror(http->transfer_result));
+        pkgi_http_cleanup(http);
+        throw HttpError(err);
     }
 
     curl_easy_getinfo(http->curl, CURLINFO_RESPONSE_CODE, &http->http_status);
@@ -225,7 +238,9 @@ int64_t VitaHttp::read(uint8_t* buffer, uint64_t size)
     }
 
     // Drive curl until we have data or the transfer is done
-    pump(_http, 1);
+    std::string errbuf;
+    if (!pump(_http, 1, errbuf))
+        throw HttpError(errbuf);
 
     if (_http->transfer_done && _http->transfer_result != CURLE_OK &&
         _http->transfer_result != CURLE_WRITE_ERROR /* aborted */)
@@ -249,12 +264,14 @@ int64_t VitaHttp::read(uint8_t* buffer, uint64_t size)
     {
         _http->buffer.erase(
                 _http->buffer.begin(),
-                _http->buffer.begin() + static_cast<ptrdiff_t>(_http->buffer_pos));
+                _http->buffer.begin() +
+                        static_cast<ptrdiff_t>(_http->buffer_pos));
         _http->buffer_pos = 0;
     }
 
     return static_cast<int64_t>(to_copy);
 }
+
 
 void VitaHttp::abort()
 {
