@@ -30,8 +30,7 @@ extern "C"
 #include <psp2/kernel/modulemgr.h>
 #include <psp2/kernel/processmgr.h>
 #include <psp2/kernel/threadmgr.h>
-#include <psp2/libssl.h>
-#include <psp2/net/http.h>
+#include <curl/curl.h>
 #include <psp2/net/net.h>
 #include <psp2/net/netctl.h>
 #include <psp2/power.h>
@@ -481,8 +480,6 @@ void pkgi_start(void)
     pkgi_load_sce_paf();
     sceSysmoduleLoadModuleInternal(SCE_SYSMODULE_INTERNAL_PROMOTER_UTIL);
     sceSysmoduleLoadModule(SCE_SYSMODULE_NET);
-    sceSysmoduleLoadModule(SCE_SYSMODULE_HTTP);
-    sceSysmoduleLoadModule(SCE_SYSMODULE_SSL);
     sceSysmoduleLoadModule(SCE_SYSMODULE_SQLITE);
 
     static uint8_t netmem[1024 * 1024];
@@ -497,13 +494,9 @@ void pkgi_start(void)
 
     pkgi_start_debug_log();
 
-    LOG("initializing SSL");
-    sceSslInit(1024 * 1024);
-    LOG("initializing HTTP");
-    sceHttpInit(1024 * 1024);
+    LOG("initializing HTTP (libcurl)");
+    curl_global_init(CURL_GLOBAL_ALL);
     LOG("network initialized");
-
-    sceHttpsDisableOption(SCE_HTTPS_FLAG_SERVER_VERIFY);
 
     sceKernelCreateLwMutex(&g_dialog_lock, "dialog_lock", 2, 0, NULL);
 
@@ -642,13 +635,10 @@ void pkgi_end(void)
 
     sceKernelDeleteLwMutex(&g_dialog_lock);
 
-    sceHttpTerm();
-    // sceSslTerm();
+    curl_global_cleanup();
     sceNetCtlTerm();
     sceNetTerm();
 
-    sceSysmoduleUnloadModule(SCE_SYSMODULE_SSL);
-    sceSysmoduleUnloadModule(SCE_SYSMODULE_HTTP);
     sceSysmoduleUnloadModule(SCE_SYSMODULE_NET);
     sceSysmoduleUnloadModuleInternal(SCE_SYSMODULE_INTERNAL_PROMOTER_UTIL);
 

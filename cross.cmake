@@ -97,15 +97,17 @@ target_link_libraries(pkgj
   SceCtrl_stub
   SceDisplay_stub
   SceGxm_stub
-  SceHttp_stub
   SceNet_stub
   SceNetCtl_stub
   ScePgf_stub
   ScePower_stub
   ScePromoterUtil_stub
   SceShellSvc_stub
-  SceSsl_stub
   SceSysmodule_stub
+  curl
+  ssl
+  crypto
+  zstd
   SceVshBridge_stub
   taihen_stub
 )
