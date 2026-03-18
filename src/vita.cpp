@@ -44,10 +44,26 @@ extern "C"
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <curl/curl.h>
 
 extern "C"
 {
     int _newlib_heap_size_user = 128 * 1024 * 1024;
+
+    // libcurl calls fcntl(sock, F_SETFD, FD_CLOEXEC) on every socket it opens.
+    // PS Vita's SceNet layer does not support this and returns an error, which
+    // curl treats as fatal (CURLE_COULDNT_CONNECT). Intercept via --wrap and
+    // silently succeed for F_SETFD so curl can proceed normally.
+    int __wrap_fcntl(int /*fd*/, int cmd, ...)
+    {
+        if (cmd == F_SETFD)
+            return 0;
+        // All other fcntl uses are unsupported on Vita anyway.
+        errno = ENOSYS;
+        return -1;
+    }
 }
 
 static vita2d_pgf* g_font;
@@ -501,6 +517,8 @@ void pkgi_start(void)
     sceSslInit(1024 * 1024);
     LOG("initializing HTTP");
     sceHttpInit(1024 * 1024);
+    LOG("initializing curl");
+    curl_global_init(CURL_GLOBAL_ALL);
     LOG("network initialized");
 
     sceHttpsDisableOption(SCE_HTTPS_FLAG_SERVER_VERIFY);

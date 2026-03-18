@@ -164,10 +164,10 @@ public:
     Thread& operator=(const Thread&) = delete;
     Thread& operator=(Thread&&) = delete;
 
-    Thread(const std::string& name, EntryPoint entry)
+    Thread(const std::string& name, EntryPoint entry, SceSize stack_size = 0x8000)
     {
         _tid = sceKernelCreateThread(
-                name.c_str(), &entry_point, 0xb0, 0x8000, 0, 0, nullptr);
+                name.c_str(), &entry_point, 0xb0, stack_size, 0, 0, nullptr);
         if (_tid < 0)
         {
             // TODO throw

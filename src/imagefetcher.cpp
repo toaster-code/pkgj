@@ -3,7 +3,7 @@
 #include "db.hpp"
 #include "file.hpp"
 #include "pkgi.hpp"
-#include "vitahttp.hpp"
+#include "curlhttp.hpp"
 
 #include <fmt/format.h>
 #include <mutex>
@@ -119,7 +119,7 @@ void ImageFetcher::do_request()
             std::lock_guard<Mutex> lock(_mutex);
             if (_abort)
                 return;
-            _http = std::make_unique<VitaHttp>();
+            _http = std::make_unique<CurlHttp>();
         }
         const auto image = download_data(_http.get(), _url);
         {

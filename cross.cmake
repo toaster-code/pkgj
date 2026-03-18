@@ -79,8 +79,11 @@ add_executable(pkgj
   src/vita.cpp
   src/vitafile.cpp
   src/vitahttp.cpp
+  src/curlhttp.cpp
   src/zrif.cpp
 )
+
+target_link_options(pkgj PRIVATE -Wl,--wrap,fcntl)
 
 target_link_libraries(pkgj
   vita2d
@@ -100,6 +103,10 @@ target_link_libraries(pkgj
   SceCtrl_stub
   SceDisplay_stub
   SceGxm_stub
+  curl
+  ssl
+  crypto
+  zstd
   SceHttp_stub
   SceNet_stub
   SceNetCtl_stub
