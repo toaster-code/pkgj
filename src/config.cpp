@@ -171,6 +171,7 @@ Config pkgi_load_config()
     try
     {
         Config config{};
+        config.no_version_check = 1;  // fork: update URL points to upstream
 
         config.games_url = default_psv_games_url;
         config.dlcs_url = default_psv_dlcs_url;
