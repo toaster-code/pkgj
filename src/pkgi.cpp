@@ -1400,9 +1400,14 @@ int main()
 
             if (gameview)
             {
-                gameview->render();
+                // Check is_closed() BEFORE render() so that when the view
+                // closes we do not add the texture to the ImGui draw list for
+                // this frame. The destructor calls vita2d_wait_rendering_done()
+                // which then safely covers the previous frame before freeing.
                 if (gameview->is_closed())
                     gameview = nullptr;
+                else
+                    gameview->render();
             }
 
             if (pkgi_dialog_is_open())

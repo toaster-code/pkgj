@@ -75,6 +75,17 @@ ImageFetcher::~ImageFetcher()
     if (http)
         http->abort();
     _thread.join();
+    // Wait for any in-flight GPU frame to finish before releasing the texture.
+    // vita2d queues draw commands asynchronously; the destructor can run right
+    // after render() while the GPU is still reading this texture. Without the
+    // wait, vita2d_free_texture triggers a GPU driver crash.
+    // The stall is at most one frame (~16 ms) and only occurs when the user
+    // closes the game view — not on every frame.
+    if (_texture)
+    {
+        vita2d_wait_rendering_done();
+        vita2d_free_texture(_texture);
+    }
 }
 
 vita2d_texture* ImageFetcher::get_texture()
@@ -111,6 +122,9 @@ void ImageFetcher::do_request()
         if (pkgi_file_exists(_path.c_str()))
         {
             std::lock_guard<Mutex> lock(_mutex);
+            // Bug 3: skip expensive load if we are already being destroyed.
+            if (_abort)
+                return;
             _texture = vita2d_load_JPEG_file(_path.c_str());
             if (_texture)
                 return;
@@ -119,26 +133,34 @@ void ImageFetcher::do_request()
             std::lock_guard<Mutex> lock(_mutex);
             if (_abort)
                 return;
-            _http = std::make_unique<CurlHttp>();
+            _http = std::make_unique<CurlHttp>(&_abort);
         }
         const auto image = download_data(_http.get(), _url);
+        vita2d_texture* tex = nullptr;
         {
             std::lock_guard<Mutex> lock(_mutex);
-            if (image && !image->empty())
-                _texture =
-                        vita2d_load_JPEG_buffer(image->data(), image->size());
             _http = nullptr;
+            // Bug 1: only decode (and later persist) a complete, non-aborted
+            // download.  Passing partial bytes to vita2d_load_JPEG_buffer
+            // crashes the PS Vita's JPEG decoder.
+            if (!_abort && image && !image->empty())
+                tex = vita2d_load_JPEG_buffer(image->data(), image->size());
+            _texture = tex;
         }
-        if (image && !image->empty())
+        if (tex)
         {
-            auto image_file = pkgi_create(_path.c_str());
+            // Write to a temporary file first, then rename atomically so that
+            // a crash or abort mid-write never leaves a corrupt .jpg on disk.
+            const auto tmp_path = _path + ".tmp";
+            auto image_file = pkgi_create(tmp_path);
             pkgi_write(image_file, image->data(), image->size());
             pkgi_close(image_file);
+            pkgi_rename(tmp_path, _path);
         }
     }
     catch (const std::exception& e)
     {
-        LOGF("Failed to fetch patch info: {}", e.what());
+        LOGF("Failed to fetch cover image: {}", e.what());
         std::lock_guard<Mutex> lock(_mutex);
         _http = nullptr;
     }

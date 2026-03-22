@@ -9,6 +9,11 @@
 
 // ---------------------------------------------------------------------------
 
+CurlHttp::CurlHttp(const std::atomic<bool>* external_abort)
+    : _external_abort(external_abort)
+{
+}
+
 CurlHttp::~CurlHttp()
 {
     if (_curl)
@@ -24,7 +29,9 @@ void CurlHttp::start(const std::string& url, uint64_t offset)
     _read_pos       = 0;
     _status_code    = 0;
     _content_length = -1;
-    _aborted        = false;
+    // Do NOT reset _aborted here: abort() may have been called between
+    // construction and start(), and clearing the flag here would lose that
+    // signal, causing curl_easy_perform to run to its full timeout.
     std::memset(_err_buf, 0, sizeof(_err_buf));
 
     _curl = curl_easy_init();
@@ -117,7 +124,12 @@ int CurlHttp::progress_cb(void* ud,
                            curl_off_t, curl_off_t,
                            curl_off_t, curl_off_t)
 {
-    return static_cast<CurlHttp*>(ud)->_aborted.load() ? 1 : 0;
+    const auto* self = static_cast<CurlHttp*>(ud);
+    if (self->_aborted.load())
+        return 1;
+    if (self->_external_abort && self->_external_abort->load())
+        return 1;
+    return 0;
 }
 
 // CurlHttp object is used. We guard with std::call_once so it can also be

@@ -5,6 +5,8 @@
 
 #include <vita2d.h>
 
+#include <atomic>
+
 class ImageFetcher
 {
 public:
@@ -18,7 +20,7 @@ private:
 
     std::string _path;
     std::string _url;
-    bool _abort{false};
+    std::atomic<bool> _abort{false};
     std::unique_ptr<Http> _http;
     vita2d_texture* _texture;
 

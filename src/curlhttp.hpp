@@ -16,6 +16,10 @@
 class CurlHttp : public Http
 {
 public:
+    // external_abort: optional pointer to an atomic flag owned by the caller.
+    // The progress callback checks it in addition to the local abort() call,
+    // so an abort() signal set before start() is invoked is never lost.
+    explicit CurlHttp(const std::atomic<bool>* external_abort = nullptr);
     ~CurlHttp();
 
     void start(const std::string& url, uint64_t offset) override;
@@ -33,6 +37,9 @@ private:
     long                 _status_code    = 0;
     int64_t              _content_length = -1;
     std::atomic<bool>    _aborted{false};
+
+    // Optional external abort flag (e.g. from ImageFetcher::_abort).
+    const std::atomic<bool>* _external_abort = nullptr;
 
     // Kept alive until abort() or destruction so the progress callback can
     // reference _aborted atomically.
