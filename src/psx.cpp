@@ -115,8 +115,7 @@ void pkgi_scan_pbps() {
     std::string eboot_file;
     
     int dir_read_ret = 0;
-    SceIoDirent dir;
-    int ret = 0;
+    SceIoDirent dir;    
     do{
         memset(&dir, 0x00, sizeof(SceIoDirent));
         dir_read_ret = sceIoDread(dfd, &dir);    

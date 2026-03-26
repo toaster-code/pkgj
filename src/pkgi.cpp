@@ -711,7 +711,7 @@ void pkgi_do_main(Downloader& downloader, pkgi_input* input)
             }
             else
             {
-                for(int i = 0; i < selected_items.size(); i++)
+                for(size_t i = 0; i < selected_items.size(); i++)
                 {
                     if (downloader.is_in_queue(mode_to_type(mode), selected_items[i]->content))
                     {
@@ -1498,6 +1498,9 @@ int main()
                         break;
                     case MenuResultShowPspDlcs:
                         pkgi_set_mode(ModePspDlcs);
+                        break;
+                    case MenuResultOpenConfigEditor:
+                        // TODO: open config editor UI
                         break;
                     }
                 }
