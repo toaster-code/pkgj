@@ -1,15 +1,17 @@
 #include "imagefetcher.hpp"
 
+#include "curlhttp.hpp"
 #include "db.hpp"
 #include "file.hpp"
 #include "pkgi.hpp"
-#include "curlhttp.hpp"
 
+#include <chrono>
 #include <fmt/format.h>
 #include <mutex>
-#include <optional>
 
-std::string get_image_url(DbItem* item)
+namespace
+{
+std::string get_store_image_url(DbItem* item)
 {
     std::string country_abbv = "USA";
     std::string language = "en";
@@ -54,14 +56,37 @@ std::string get_image_url(DbItem* item)
             pkgi_time_msec());
 }
 
-ImageFetcher::ImageFetcher(DbItem* item)
+std::string get_image_path(const Config* config, DbItem* item)
+{
+    const std::string folder = config && !config->thumbnail_folder.empty()
+            ? config->thumbnail_folder
+            : "ux0:pkgj/cover";
+    return fmt::format("{}/{}.jpg", folder, item->titleid);
+}
+
+std::string get_image_url(const Config* config, DbItem* item)
+{
+    if (config && !config->thumbnail_url.empty())
+        return fmt::format("{}/{}.jpg", config->thumbnail_url, item->titleid);
+    return get_store_image_url(item);
+}
+
+void ensure_image_folder(const Config* config)
+{
+    const std::string folder = config && !config->thumbnail_folder.empty()
+            ? config->thumbnail_folder
+            : "ux0:pkgj/cover";
+    pkgi_mkdirs(folder.c_str());
+}
+}
+
+ImageFetcher::ImageFetcher(const Config* config, DbItem* item)
     : _mutex("image_fetcher_mutex")
-    , _path(fmt::format("ux0:pkgj/cover/{}.jpg", item->titleid))
-    , _url(get_image_url(item))
-    , _texture(nullptr)
+    , _path(get_image_path(config, item))
+    , _url(get_image_url(config, item))
     , _thread("image_fetcher", [this] { do_request(); })
 {
-    pkgi_mkdirs("ux0:pkgj/cover");
+    ensure_image_folder(config);
 }
 
 ImageFetcher::~ImageFetcher()
@@ -94,29 +119,12 @@ vita2d_texture* ImageFetcher::get_texture()
     return _texture;
 }
 
-std::optional<std::vector<uint8_t>> download_data(
-        Http* http, const std::string& url)
-{
-    std::vector<uint8_t> data;
-    http->start(url, 0);
-    if (http->get_status() == 404)
-        return std::nullopt;
-    size_t pos = 0;
-    while (true)
-    {
-        if (pos == data.size())
-            data.resize(pos + 4096);
-        const auto read = http->read(data.data() + pos, data.size() - pos);
-        if (read == 0)
-            break;
-        pos += read;
-    }
-    data.resize(pos);
-    return data;
-}
-
 void ImageFetcher::do_request()
 {
+    using namespace std::chrono;
+    const auto start_time = steady_clock::now();
+    const auto timeout = seconds(8);
+
     try
     {
         if (pkgi_file_exists(_path.c_str()))
@@ -129,33 +137,81 @@ void ImageFetcher::do_request()
             if (_texture)
                 return;
         }
+
+        if (_url.empty())
+            return;
+
         {
             std::lock_guard<Mutex> lock(_mutex);
             if (_abort)
                 return;
             _http = std::make_unique<CurlHttp>(&_abort);
         }
-        const auto image = download_data(_http.get(), _url);
+
+        std::vector<uint8_t> data;
+        data.reserve(32 * 1024);
+        _http->start(_url, 0);
+        if (_http->get_status() == 404)
+        {
+            std::lock_guard<Mutex> lock(_mutex);
+            _http = nullptr;
+            return;
+        }
+
+        size_t pos = 0;
+        bool too_large = false;
+        while (true)
+        {
+            if (steady_clock::now() - start_time > timeout)
+            {
+                std::lock_guard<Mutex> lock(_mutex);
+                _http = nullptr;
+                return;
+            }
+
+            {
+                std::lock_guard<Mutex> lock(_mutex);
+                if (_abort)
+                {
+                    _http = nullptr;
+                    return;
+                }
+            }
+
+            if (pos == data.size())
+                data.resize(pos + 4096);
+
+            const auto read = _http->read(data.data() + pos, data.size() - pos);
+            if (read == 0)
+                break;
+            pos += read;
+
+            if (pos > MAX_SIZE_BYTES)
+            {
+                too_large = true;
+                break;
+            }
+        }
+
+        data.resize(pos);
         vita2d_texture* tex = nullptr;
         {
             std::lock_guard<Mutex> lock(_mutex);
             _http = nullptr;
-            // Bug 1: only decode (and later persist) a complete, non-aborted
-            // download.  Passing partial bytes to vita2d_load_JPEG_buffer
-            // crashes the PS Vita's JPEG decoder.
-            if (!_abort && image && !image->empty())
-                tex = vita2d_load_JPEG_buffer(image->data(), image->size());
+            if (!_abort && !too_large && !data.empty())
+                tex = vita2d_load_JPEG_buffer(data.data(), data.size());
             _texture = tex;
         }
         if (tex)
         {
-            // Write to a temporary file first, then rename atomically so that
-            // a crash or abort mid-write never leaves a corrupt .jpg on disk.
             const auto tmp_path = _path + ".tmp";
             auto image_file = pkgi_create(tmp_path);
-            pkgi_write(image_file, image->data(), image->size());
-            pkgi_close(image_file);
-            pkgi_rename(tmp_path, _path);
+            if (image_file)
+            {
+                pkgi_write(image_file, data.data(), data.size());
+                pkgi_close(image_file);
+                pkgi_rename(tmp_path, _path);
+            }
         }
     }
     catch (const std::exception& e)

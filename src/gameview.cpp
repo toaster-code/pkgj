@@ -41,7 +41,7 @@ GameView::GameView(
     , _base_comppack(base_comppack)
     , _patch_comppack(patch_comppack)
     , _patch_info_fetcher(item->titleid)
-    , _image_fetcher(item)
+    , _image_fetcher(config, item)
     , _annotationDb(annotationDb)
     , _annotation(annotationDb ? annotationDb->get(item->titleid) : UserAnnotation{})
 {
@@ -49,13 +49,6 @@ GameView::GameView(
     std::strncpy(_comment_buf, _annotation.comment.c_str(),
                  sizeof(_comment_buf) - 1);
     _comment_buf[sizeof(_comment_buf) - 1] = '\0';
-
-    // Thumbnail fetcher — folder defaults to ux0:pkgj/thumbnails if not set
-    const std::string thumb_folder = config->thumbnail_folder.empty()
-            ? "ux0:pkgj/thumbnails"
-            : config->thumbnail_folder;
-    _thumbnail_fetcher = std::make_unique<ThumbnailFetcher>(
-            item->titleid, thumb_folder, config->thumbnail_url);
 
     refresh();
 }
@@ -91,7 +84,7 @@ void GameView::render()
         const float kImagePanelW = kThumbSizes[tsz].w;
         const float kImagePanelH = kThumbSizes[tsz].h;
 
-        auto* thumb_tex = _thumbnail_fetcher->get_texture();
+        auto* thumb_tex = _image_fetcher.get_texture();
 
         if (kImagePanelW > 0.f)
         {

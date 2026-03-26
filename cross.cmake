@@ -67,7 +67,6 @@ add_executable(pkgj
   src/patchinfofetcher.cpp
   src/psx.cpp
   src/imagefetcher.cpp
-  src/thumbnailfetcher.cpp
   src/imgui.cpp
   src/install.cpp
   src/menu.cpp

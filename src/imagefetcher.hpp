@@ -1,16 +1,17 @@
 #pragma once
 
+#include "config.hpp"
 #include "http.hpp"
 #include "thread.hpp"
 
 #include <vita2d.h>
 
-#include <atomic>
-
 class ImageFetcher
 {
 public:
-    ImageFetcher(DbItem* item);
+    static constexpr size_t MAX_SIZE_BYTES = 100 * 1024;
+
+    ImageFetcher(const Config* config, DbItem* item);
     ~ImageFetcher();
 
     vita2d_texture* get_texture();
@@ -20,9 +21,9 @@ private:
 
     std::string _path;
     std::string _url;
-    std::atomic<bool> _abort{false};
+    bool _abort{false};
     std::unique_ptr<Http> _http;
-    vita2d_texture* _texture;
+    vita2d_texture* _texture{nullptr};
 
     Thread _thread;
 

@@ -24,11 +24,12 @@ typedef struct Config
 
     std::string comppack_url;
 
-    // Screenshot/thumbnail image settings
-    // thumbnail_url    : base URL — image fetched as {thumbnail_url}/{titleid}.jpg
-    //                    Leave empty to disable network fetching.
-    // thumbnail_folder : local directory where thumbnails are stored/cached
-    //                    Leave empty to use the default: ux0:pkgj/thumbnails
+    // Image panel settings
+    // thumbnail_url    : optional base URL for custom images fetched as
+    //                    {thumbnail_url}/{titleid}.jpg.
+    //                    Leave empty to fall back to the default PS Store cover.
+    // thumbnail_folder : local directory where images are stored/cached.
+    //                    Leave empty to use the default: ux0:pkgj/cover
     // thumbnail_size   : panel size preset — 0=off, 1=small, 2=medium (default), 3=large
     std::string thumbnail_url;
     std::string thumbnail_folder;
