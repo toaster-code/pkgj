@@ -111,27 +111,6 @@ void ConfigEditor::render()
     const float footer_h =
             ImGui::GetFrameHeightWithSpacing() + ImGui::GetStyle().ItemSpacing.y;
 
-    // ── Thumbnail panel size selector ─────────────────────────────────────────
-    ImGui::Text("Thumbnail panel:");
-    ImGui::SameLine();
-    {
-        const char* size_labels[] = { "Off", "Small", "Medium", "Large" };
-        for (int s = 0; s < 4; ++s)
-        {
-            if (s > 0) ImGui::SameLine();
-            const bool active = (_config.thumbnail_size == s);
-            if (active)
-                ImGui::PushStyleColor(
-                        ImGuiCol_Button,
-                        ImVec4(0.2f, 0.6f, 0.2f, 1.f));
-            if (ImGui::Button(size_labels[s]))
-                _config.thumbnail_size = s;
-            if (active)
-                ImGui::PopStyleColor();
-        }
-    }
-    ImGui::Separator();
-
     // ── Scrollable row list ───────────────────────────────────────────────────
     ImGui::BeginChild(
             "##rows",
@@ -159,6 +138,9 @@ void ConfigEditor::render()
                     display,
                     sel,
                     ImGuiSelectableFlags_AllowDoubleClick);
+
+            if (sel)
+                ImGui::SetItemDefaultFocus();
 
             // D-pad navigation: track which row ImGui's nav cursor is on
             if (ImGui::IsItemFocused())

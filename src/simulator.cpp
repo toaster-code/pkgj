@@ -4,6 +4,8 @@ extern "C"
 #include "style.h"
 }
 
+#include "logbuffer.hpp"
+
 #include <fmt/format.h>
 
 #include <boost/scope_exit.hpp>
@@ -27,11 +29,21 @@ extern "C"
 
 void pkgi_log(const char* msg, ...)
 {
+    char buffer[512];
+
     va_list args;
     va_start(args, msg);
-    vprintf(msg, args);
-    printf("\n");
+    int len = vsnprintf(buffer, sizeof(buffer), msg, args);
     va_end(args);
+
+    if (len < 0)
+        len = 0;
+    else if (len >= static_cast<int>(sizeof(buffer)))
+        len = sizeof(buffer) - 1;
+    buffer[len] = 0;
+
+    pkgi_log_buffer_append(buffer);
+    printf("%s\n", buffer);
 }
 
 int pkgi_snprintf(char* buffer, uint32_t size, const char* msg, ...)

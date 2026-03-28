@@ -27,6 +27,7 @@ typedef enum
     MenuFilter,
     MenuRefresh,
     MenuConfigEdit,
+    MenuLogView,
     MenuShow,
 } MenuType;
 
@@ -57,6 +58,7 @@ static const MenuEntry menu_entries[] = {
 
         {MenuRefresh, "Refresh", 0},
         {MenuConfigEdit, "Edit config.txt", 0},
+        {MenuLogView, "View log", 0},
 
         {MenuShow, "Show games", 1},
         {MenuShow, "Show DLCs", 2},
@@ -198,6 +200,12 @@ int pkgi_do_menu(pkgi_input* input)
         else if (type == MenuConfigEdit)
         {
             menu_result = MenuResultOpenConfigEditor;
+            menu_delta = -1;
+            return 1;
+        }
+        else if (type == MenuLogView)
+        {
+            menu_result = MenuResultOpenLogViewer;
             menu_delta = -1;
             return 1;
         }

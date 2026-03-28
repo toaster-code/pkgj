@@ -9,6 +9,7 @@ extern "C"
 #include "file.hpp"
 #include "http.hpp"
 #include "log.hpp"
+#include "logbuffer.hpp"
 #include "psx.hpp"
 
 #include <fmt/format.h>
@@ -89,7 +90,6 @@ static int g_log_socket;
 
 #define PKGI_ERRNO_ENOENT (int)(0x80010000 + SCE_NET_ENOENT)
 
-#ifdef PKGI_ENABLE_LOGGING
 void pkgi_log(const char* msg, ...)
 {
     char buffer[512];
@@ -99,12 +99,20 @@ void pkgi_log(const char* msg, ...)
     // TODO: why sceClibVsnprintf doesn't work here?
     int len = vsnprintf(buffer, sizeof(buffer) - 1, msg, args);
     va_end(args);
-    buffer[len] = '\n';
+    if (len < 0)
+        len = 0;
+    else if (len >= static_cast<int>(sizeof(buffer)))
+        len = sizeof(buffer) - 1;
+    buffer[len] = 0;
 
+    pkgi_log_buffer_append(buffer);
+
+#ifdef PKGI_ENABLE_LOGGING
+    buffer[len] = '\n';
     sceNetSend(g_log_socket, buffer, len + 1, 0);
     // sceKernelDelayThread(10);
-}
 #endif
+}
 
 
 int pkgi_snprintf(char* buffer, uint32_t size, const char* msg, ...)

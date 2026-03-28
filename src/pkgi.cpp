@@ -8,6 +8,7 @@ extern "C"
 #include "bgdl.hpp"
 #include "comppackdb.hpp"
 #include "config.hpp"
+#include "configeditor.hpp"
 #include "db.hpp"
 #include "dialog.hpp"
 #include "download.hpp"
@@ -15,6 +16,7 @@ extern "C"
 #include "gameview.hpp"
 #include "imgui.hpp"
 #include "install.hpp"
+#include "logviewer.hpp"
 #include "menu.hpp"
 #include "update.hpp"
 #include "utils.hpp"
@@ -82,11 +84,18 @@ std::set<std::string> installed_games;
 std::set<std::string> installed_themes;
 
 std::unique_ptr<GameView> gameview;
+std::unique_ptr<ConfigEditor> config_editor;
+std::unique_ptr<LogViewer> log_viewer;
 std::unique_ptr<AnnotationDatabase> annotation_db;
 bool need_refresh = true;
 bool runtime_install_queued = false;
 std::string content_to_refresh;
 void pkgi_reload();
+
+bool pkgi_overlay_is_open()
+{
+    return gameview || config_editor || log_viewer;
+}
 
 const char* pkgi_get_ok_str(void)
 {
@@ -367,6 +376,15 @@ void pkgi_refresh_list()
 {
     state = StateRefreshing;
     pkgi_start_thread("refresh_thread", &pkgi_refresh_thread);
+}
+
+void pkgi_mark_all_items_unknown()
+{
+    if (!db)
+        return;
+
+    for (uint32_t i = 0; i < db->count(); ++i)
+        db->get(i)->presence = PresenceUnknown;
 }
 
 void pkgi_do_main(Downloader& downloader, pkgi_input* input)
@@ -1012,7 +1030,7 @@ void pkgi_do_tail(Downloader& downloader)
     int right = rightw + PKGI_MAIN_TEXT_PADDING;
 
     std::string bottom_text;
-    if (gameview || pkgi_dialog_is_open())
+    if (pkgi_overlay_is_open() || pkgi_dialog_is_open())
     {
         bottom_text = fmt::format(
                 "{} select {} close", pkgi_get_ok_str(), pkgi_get_cancel_str());
@@ -1347,7 +1365,7 @@ int main()
             io.DisplaySize.x = VITA_WIDTH;
             io.DisplaySize.y = VITA_HEIGHT;
 
-            if (gameview || pkgi_dialog_is_open())
+            if (pkgi_overlay_is_open() || pkgi_dialog_is_open())
             {
                 io.AddKeyEvent(
                         ImGuiKey_GamepadDpadUp, input.pressed & PKGI_BUTTON_UP);
@@ -1363,8 +1381,17 @@ int main()
                 io.AddKeyEvent(
                         ImGuiKey_GamepadFaceDown,
                         input.pressed & pkgi_ok_button());
-                if (input.pressed & pkgi_cancel_button() && gameview)
-                    gameview->close();
+                if (input.pressed & pkgi_cancel_button())
+                {
+                    if (gameview)
+                        gameview->close();
+                    else if (config_editor)
+                        config_editor->close();
+                    else if (log_viewer)
+                        log_viewer->close();
+                }
+                if ((input.pressed & PKGI_BUTTON_T) && config_editor)
+                    config_editor->save_and_close();
 
                 input.active = 0;
                 input.pressed = 0;
@@ -1427,12 +1454,41 @@ int main()
                     gameview->render();
             }
 
+            if (config_editor)
+            {
+                if (config_editor->is_closed())
+                {
+                    const bool saved = config_editor->was_saved();
+                    config_editor = nullptr;
+                    if (saved)
+                    {
+                        config = pkgi_load_config();
+                        config_temp = config;
+                        pkgi_reload();
+                        pkgi_mark_all_items_unknown();
+                        reposition();
+                    }
+                }
+                else
+                {
+                    config_editor->render();
+                }
+            }
+
+            if (log_viewer)
+            {
+                if (log_viewer->is_closed())
+                    log_viewer = nullptr;
+                else
+                    log_viewer->render();
+            }
+
             if (pkgi_dialog_is_open())
             {
                 pkgi_do_dialog();
             }
 
-            if (pkgi_dialog_input_update())
+            if (!pkgi_overlay_is_open() && pkgi_dialog_input_update())
             {
                 search_active = 1;
                 pkgi_dialog_input_get_text(search_text, sizeof(search_text));
@@ -1517,7 +1573,10 @@ int main()
                         pkgi_set_mode(ModePspDlcs);
                         break;
                     case MenuResultOpenConfigEditor:
-                        // TODO: open config editor UI
+                        config_editor = std::make_unique<ConfigEditor>(config);
+                        break;
+                    case MenuResultOpenLogViewer:
+                        log_viewer = std::make_unique<LogViewer>();
                         break;
                     }
                 }

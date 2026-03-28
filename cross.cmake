@@ -63,6 +63,8 @@ add_executable(pkgj
   src/extractzip.cpp
   src/filedownload.cpp
   src/gameview.cpp
+  src/logbuffer.cpp
+  src/logviewer.cpp
   src/patchinfo.cpp
   src/patchinfofetcher.cpp
   src/psx.cpp
