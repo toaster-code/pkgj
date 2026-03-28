@@ -300,7 +300,8 @@ int pkgi_do_menu(pkgi_input* input)
 
         char text[64];
         if (type == MenuSearch || type == MenuSearchClear || type == MenuText ||
-            type == MenuRefresh || type == MenuConfigEdit || type == MenuShow)
+            type == MenuRefresh || type == MenuConfigEdit || type == MenuLogView ||
+            type == MenuShow)
         {
             pkgi_strncpy(text, sizeof(text), entry->text);
         }

@@ -21,9 +21,9 @@ constexpr unsigned GameViewHeight = VITA_HEIGHT * 0.82;
 struct ThumbSize { float w, h; };
 constexpr ThumbSize kThumbSizes[] = {
     {  0.f,   0.f}, // 0 off
-    {150.f, 225.f}, // 1 small
-    {210.f, 315.f}, // 2 medium
-    {270.f, 405.f}, // 3 large
+    {225.f, 338.f}, // 1 small
+    {315.f, 473.f}, // 2 medium
+    {405.f, 608.f}, // 3 large
 };
 constexpr int kThumbSizeCount = 4;
 
