@@ -338,12 +338,12 @@ void pkgi_friendly_size(char* text, uint32_t textlen, int64_t size)
     }
     else if (size < 1000LL * 1000)
     {
-        pkgi_snprintf(text, textlen, "%.2f " PKGI_UTF8_KB, size / 1024.f);
+        pkgi_snprintf(text, textlen, "%.2f " PKGI_UTF8_KB, size / 1000.f);
     }
     else if (size < 1000LL * 1000 * 1000)
     {
         pkgi_snprintf(
-                text, textlen, "%.2f " PKGI_UTF8_MB, size / 1024.f / 1024.f);
+                text, textlen, "%.2f " PKGI_UTF8_MB, size / 1000.f / 1000.f);
     }
     else
     {
@@ -351,7 +351,7 @@ void pkgi_friendly_size(char* text, uint32_t textlen, int64_t size)
                 text,
                 textlen,
                 "%.2f " PKGI_UTF8_GB,
-                size / 1024.f / 1024.f / 1024.f);
+                size / 1000.f / 1000.f / 1000.f);
     }
 }
 
@@ -685,13 +685,16 @@ void pkgi_do_main(Downloader& downloader, pkgi_input* input)
             return;
         DbItem* item = db->get(selected_item);
 
-        if (mode == ModeGames)
+        if (mode == ModeGames || mode == ModePspGames)
             gameview = std::make_unique<GameView>(
+                mode,
                     &config,
                     &downloader,
                     item,
-                    comppack_db_games->get(item->titleid),
-                    comppack_db_updates->get(item->titleid),
+                mode == ModeGames ? comppack_db_games->get(item->titleid)
+                          : std::optional<CompPackDatabase::Item>{},
+                mode == ModeGames ? comppack_db_updates->get(item->titleid)
+                          : std::optional<CompPackDatabase::Item>{},
                     annotation_db.get());
         else if (mode == ModeThemes || mode == ModeDemos)
         {
@@ -750,7 +753,7 @@ void pkgi_do_main(Downloader& downloader, pkgi_input* input)
         *
         * Related context: .github/copilot-instructions.md (Annotation Feature section)
         */
-        if (mode == ModeGames)
+        if (mode == ModeGames || mode == ModePspGames)
         {
             input->pressed &= ~PKGI_BUTTON_S;
             DbItem* item = db->get(selected_item);
@@ -1023,7 +1026,7 @@ void pkgi_do_tail(Downloader& downloader)
     }
     else
     {
-        if (mode == ModeGames)
+        if (mode == ModeGames || mode == ModePspGames)
         {
             bottom_text += fmt::format("{} details ", pkgi_get_ok_str());
             bottom_text += PKGI_UTF8_S " flag ";
@@ -1172,7 +1175,10 @@ void pkgi_download_psm_runtime_if_needed() {
 }
 
 
-void pkgi_start_download(Downloader& downloader, const DbItem& item)
+void pkgi_start_download(
+    Downloader& downloader,
+    const DbItem& item,
+    PspInstallMode psp_install_mode)
 {
     LOGF("[{}] {} - starting to install", item.content, item.name);
 
@@ -1189,14 +1195,24 @@ void pkgi_start_download(Downloader& downloader, const DbItem& item)
         if (item.zrif.empty() ||
             pkgi_zrif_decode(item.zrif.c_str(), rif, message, sizeof(message)))
         {
-            if ( 
-                mode == ModeGames || mode == ModeDlcs || mode == ModeDemos || mode == ModeThemes || // Vita contents
-                (MODE_IS_PSPEMU(mode) && pkgi_is_module_present("NoPspEmuDrm_kern")) || // Psp Contents
-                (mode == ModePsmGames && pkgi_is_module_present("NoPsmDrm")) // Psm Contents
-            )
-            {
+            const bool is_pspemudrm_mode = MODE_IS_PSPEMU(mode);
+            const bool has_psp_bgdl =
+                    is_pspemudrm_mode && pkgi_is_module_present("NoPspEmuDrm_kern");
+            const bool use_psp_bgdl =
+                    is_pspemudrm_mode &&
+                    (psp_install_mode == PspInstallMode::LiveAreaPbp ||
+                     (psp_install_mode == PspInstallMode::Auto && has_psp_bgdl));
 
-                if (MODE_IS_PSPEMU(mode)) {
+            if (psp_install_mode == PspInstallMode::LiveAreaPbp && !has_psp_bgdl)
+                throw std::runtime_error(
+                        "NoPspEmuDrm is required to queue PSP installs in LiveArea");
+
+            if (
+                mode == ModeGames || mode == ModeDlcs || mode == ModeDemos || mode == ModeThemes ||
+                use_psp_bgdl ||
+                (mode == ModePsmGames && pkgi_is_module_present("NoPsmDrm")))
+            {
+                if (is_pspemudrm_mode) {
                     pkgi_create_psp_rif(item.content, rif);
                 }
                 
@@ -1225,7 +1241,8 @@ void pkgi_start_download(Downloader& downloader, const DbItem& item)
                                                   item.digest.begin(),
                                                   item.digest.end())
                                         : std::vector<uint8_t>{},
-                        !config.install_psp_as_pbp,
+                        is_pspemudrm_mode &&
+                            psp_install_mode != PspInstallMode::LiveAreaPbp,
                         pkgi_get_mode_partition(),
                         ""});
             }

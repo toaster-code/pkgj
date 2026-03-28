@@ -1,5 +1,59 @@
 # Changelog
 
+
+## 0.57-beta1
+
+What's new:
+
+- Added a PSP game details view with cover art, metadata, diagnostics, and personal notes.
+- Added explicit PSP install actions in game view: install as ISO, plus queue as PBP in LiveArea when NoPspEmuDrm is available.
+- Moved the PSP ISO/PBP choice out of `config.txt` and into the PSP game view.
+- Unified cover loading around `ImageFetcher` and removed the separate thumbnail fetcher path.
+- Improved cover presentation with larger portrait-oriented panels and PSP game view support.
+- Added clearer cover loading states: download in progress and final download error.
+
+Bug fixes:
+
+- Fixed rapid game view open/close crashes caused by unsafe cover texture lifetime handling.
+- Fixed stale square cover cache reuse when switching to the newer default cover path.
+- Fixed decimal size formatting to use consistent base-10 units across the UI.
+- Fixed PSP game view to avoid Vita-only patch checks and compatibility pack logic.
+
+
+## 0.57
+
+What's new:
+
+    Added BGDL for PSM Games- you will need to update NoPsmDrm to v1.5 for this to work
+    If PSM Runtime is not installed and you try download a PSM game, it will be downloaded also
+    Fixed "failed to rename: 0x80010016" error that sometimes happened when downloading PSX/PSP games.
+
+## 0.56
+
+What's new:
+
+    added Background Download of PSP games using (note: this requires the NoPspEmuDrm plugin to be installed to use)
+    added INT region .
+    added option to re download games you already have installed
+    fixed game install location for PSX games
+
+If you do not have NoPspEmuDrm the old downloader will be used instead and wont create bubbles on livearea
+
+## 0.56-beta4
+
+What's new:
+
+    Added ability to redownload games you already have installed
+    Fix PSX Games installed to the live area not showing up as installed
+    Fix ??? Regions on some PSP and PSX games
+
+
+## 0.56-beta3 
+
+What's new:
+
+    Download PSP games from Live Area (credits to @LiEnby)
+
 ## 0.55
 
 What's new:

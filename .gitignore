@@ -6,3 +6,4 @@
 .tags
 CMakeUserPresets.json
 TODO
+send_to_vita.sh

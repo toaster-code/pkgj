@@ -262,8 +262,6 @@ Config pkgi_load_config()
                 config.filter = parse_filter(value, DbFilterAll);
             else if (pkgi_stricmp(key, "no_version_check") == 0)
                 config.no_version_check = 1;
-            else if (pkgi_stricmp(key, "install_psp_as_pbp") == 0)
-                config.install_psp_as_pbp = 1;
             else if (pkgi_stricmp(key, "install_psp_psx_location") == 0)
                 config.install_psp_psx_location = value;
         }
@@ -385,12 +383,6 @@ void pkgi_save_config(const Config& config)
     {
         len += pkgi_snprintf(
                 data + len, sizeof(data) - len, "no_version_check 1\n");
-    }
-
-    if (config.install_psp_as_pbp)
-    {
-        len += pkgi_snprintf(
-                data + len, sizeof(data) - len, "install_psp_as_pbp 1\n");
     }
 
     pkgi_save(

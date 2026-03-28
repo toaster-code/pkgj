@@ -11,6 +11,11 @@
 
 namespace
 {
+bool uses_default_store_source(const Config* config)
+{
+    return !config || config->thumbnail_url.empty();
+}
+
 std::string get_store_image_url(DbItem* item)
 {
     std::string country_abbv = "USA";
@@ -49,7 +54,7 @@ std::string get_store_image_url(DbItem* item)
     }
     return fmt::format(
             "https://store.playstation.com/store/api/chihiro/"
-            "00_09_000/container/{}/{}/19/{}/{}/image?w=248&h=248",
+            "00_09_000/container/{}/{}/19/{}/{}/image?w=248",
             country_abbv,
             language,
             item->content,
@@ -61,6 +66,11 @@ std::string get_image_path(const Config* config, DbItem* item)
     const std::string folder = config && !config->thumbnail_folder.empty()
             ? config->thumbnail_folder
             : "ux0:pkgj/cover";
+
+    if ((!config || config->thumbnail_folder.empty()) &&
+        uses_default_store_source(config))
+        return fmt::format("{}/{}.cover.jpg", folder, item->titleid);
+
     return fmt::format("{}/{}.jpg", folder, item->titleid);
 }
 
@@ -119,6 +129,12 @@ vita2d_texture* ImageFetcher::get_texture()
     return _texture;
 }
 
+ImageFetcher::Status ImageFetcher::get_status()
+{
+    std::lock_guard<Mutex> lock(_mutex);
+    return _status;
+}
+
 void ImageFetcher::do_request()
 {
     using namespace std::chrono;
@@ -135,16 +151,24 @@ void ImageFetcher::do_request()
                 return;
             _texture = vita2d_load_JPEG_file(_path.c_str());
             if (_texture)
+            {
+                _status = Status::Ready;
                 return;
+            }
         }
 
         if (_url.empty())
+        {
+            std::lock_guard<Mutex> lock(_mutex);
+            _status = Status::Error;
             return;
+        }
 
         {
             std::lock_guard<Mutex> lock(_mutex);
             if (_abort)
                 return;
+            _status = Status::Downloading;
             _http = std::make_unique<CurlHttp>(&_abort);
         }
 
@@ -155,6 +179,7 @@ void ImageFetcher::do_request()
         {
             std::lock_guard<Mutex> lock(_mutex);
             _http = nullptr;
+            _status = Status::Error;
             return;
         }
 
@@ -166,6 +191,7 @@ void ImageFetcher::do_request()
             {
                 std::lock_guard<Mutex> lock(_mutex);
                 _http = nullptr;
+                _status = Status::Error;
                 return;
             }
 
@@ -201,6 +227,7 @@ void ImageFetcher::do_request()
             if (!_abort && !too_large && !data.empty())
                 tex = vita2d_load_JPEG_buffer(data.data(), data.size());
             _texture = tex;
+            _status = tex ? Status::Ready : Status::Error;
         }
         if (tex)
         {
@@ -219,5 +246,6 @@ void ImageFetcher::do_request()
         LOGF("Failed to fetch cover image: {}", e.what());
         std::lock_guard<Mutex> lock(_mutex);
         _http = nullptr;
+        _status = Status::Error;
     }
 }
