@@ -21,9 +21,9 @@ constexpr unsigned GameViewHeight = VITA_HEIGHT * 0.82;
 struct ThumbSize { float w, h; };
 constexpr ThumbSize kThumbSizes[] = {
     {  0.f,   0.f}, // 0 off
-    {225.f, 338.f}, // 1 small
-    {315.f, 473.f}, // 2 medium
-    {405.f, 608.f}, // 3 large
+    {225.f, 237.f}, // 1 small  (width 1.5x, height 70% of 1.5x original)
+    {315.f, 331.f}, // 2 medium
+    {405.f, 426.f}, // 3 large
 };
 constexpr int kThumbSizeCount = 4;
 
@@ -170,9 +170,10 @@ void GameView::render()
                 const float inner_h = kImagePanelH - 6.f;
                 if (tw > inner_w) { th = th * inner_w / tw; tw = inner_w; }
                 if (th > inner_h) { tw = tw * inner_h / th; th = inner_h; }
+                // Top-align: centre horizontally, pin to top of inner area
                 ImVec2 img_min(
                         panel_min.x + (kImagePanelW - tw) * 0.5f,
-                        panel_min.y + (kImagePanelH - th) * 0.5f);
+                        panel_min.y + 3.f);
                 ImVec2 img_max(img_min.x + tw, img_min.y + th);
                 dl->AddImage((ImTextureID)thumb_tex, img_min, img_max);
             }
