@@ -13,8 +13,8 @@ extern "C"
 
 namespace
 {
-constexpr unsigned GameViewWidth  = VITA_WIDTH  * 0.9;
-constexpr unsigned GameViewHeight = VITA_HEIGHT * 0.85;
+constexpr unsigned GameViewWidth  = VITA_WIDTH  * 0.95;
+constexpr unsigned GameViewHeight = VITA_HEIGHT * 0.82;
 
 // Thumbnail panel size presets indexed by config.thumbnail_size
 // 0=off, 1=small, 2=medium, 3=large
@@ -248,9 +248,7 @@ void GameView::render()
         ImGui::Text(" ");
     }
     else
-    {
-        ImGui::Text(fmt::format("Title ID: {}",
-                                _item->titleid.empty() ? "unknown" : _item->titleid).c_str());
+    {        
         ImGui::Text(fmt::format("Content ID: {}",
                                 _item->content.empty() ? "unknown" : _item->content).c_str());
         ImGui::Text(fmt::format("Package size: {}", friendly_size(_item->size)).c_str());
@@ -346,35 +344,56 @@ void GameView::render()
 
         ImGui::Separator();
         ImGui::Text("Personal Notes");
-        ImGui::Text(" ");
-        ImGui::Text("Flag:");
-        for (int fi = 0; fi < UserFlagCount; ++fi)
+        ImGui::Spacing();
+
+        // ── Flag — compact cycling selector  [ < ]  [label]  [ > ] ──────────
         {
-            const auto f = static_cast<UserFlag>(fi);
-            bool active = (_annotation.flag == f);
+            auto cycle = [&](int delta)
+            {
+                int fi = (static_cast<int>(_annotation.flag) + delta +
+                          UserFlagCount) %
+                         UserFlagCount;
+                _annotation.flag = static_cast<UserFlag>(fi);
+                _annotationDb->set(_item->titleid, _annotation);
+                _item->user_flag = _annotation.flag;
+            };
+
+            ImGui::Text("Flag:");
+            ImGui::SameLine();
+
+            if (ImGui::Button("< ##flagprev"))
+                cycle(-1);
+
+            ImGui::SameLine();
+
+            // Centre label button — clicking also cycles forward
+            const bool active = (_annotation.flag != UserFlag::None);
             if (active)
                 ImGui::PushStyleColor(
-                        ImGuiCol_Button,
-                        ImVec4(0.2f, 0.6f, 0.2f, 1.0f));
-            if (ImGui::Button(user_flag_label(f)))
-            {
-                _annotation.flag = f;
-                _annotationDb->set(_item->titleid, _annotation);
-                _item->user_flag = f;
-            }
+                        ImGuiCol_Button, ImVec4(0.2f, 0.6f, 0.2f, 1.0f));
+            // Fixed width so the window doesn't shift as text changes
+            if (ImGui::Button(
+                        fmt::format(
+                                "{:<18}###flaglabel",
+                                user_flag_label(_annotation.flag))
+                                .c_str(),
+                        ImVec2(180.f, 0)))
+                cycle(+1);
             if (active)
                 ImGui::PopStyleColor();
-            if (fi < UserFlagCount - 1)
-                ImGui::SameLine();
+
+            ImGui::SameLine();
+            if (ImGui::Button("> ##flagnext"))
+                cycle(+1);
         }
 
-        ImGui::Text(" ");
+        ImGui::Spacing();
         ImGui::Text("Comment:");
         ImGui::TextWrapped(
                 "%s",
                 _annotation.comment.empty() ? "(no comment)"
                                             : _annotation.comment.c_str());
-        ImGui::Text(" ");
+        ImGui::Spacing();
         if (ImGui::Button("Edit Comment"))
         {
             pkgi_dialog_input_text("Comment", _comment_buf);

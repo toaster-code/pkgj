@@ -1365,22 +1365,35 @@ int main()
             io.DisplaySize.x = VITA_WIDTH;
             io.DisplaySize.y = VITA_HEIGHT;
 
-            if (pkgi_overlay_is_open() || pkgi_dialog_is_open())
+            // Snapshot for log viewer (needs raw input BEFORE zeroing)
+            const pkgi_input input_snapshot = input;
+
+            const bool has_imgui_overlay =
+                    gameview || config_editor || pkgi_dialog_is_open();
+
+            if (has_imgui_overlay || log_viewer)
             {
-                io.AddKeyEvent(
-                        ImGuiKey_GamepadDpadUp, input.pressed & PKGI_BUTTON_UP);
-                io.AddKeyEvent(
-                        ImGuiKey_GamepadDpadDown,
-                        input.pressed & PKGI_BUTTON_DOWN);
-                io.AddKeyEvent(
-                        ImGuiKey_GamepadDpadLeft,
-                        input.pressed & PKGI_BUTTON_LEFT);
-                io.AddKeyEvent(
-                        ImGuiKey_GamepadDpadRight,
-                        input.pressed & PKGI_BUTTON_RIGHT);
-                io.AddKeyEvent(
-                        ImGuiKey_GamepadFaceDown,
-                        input.pressed & pkgi_ok_button());
+                // Feed D-pad to ImGui only for ImGui-managed overlays
+                if (has_imgui_overlay)
+                {
+                    io.AddKeyEvent(
+                            ImGuiKey_GamepadDpadUp,
+                            input.pressed & PKGI_BUTTON_UP);
+                    io.AddKeyEvent(
+                            ImGuiKey_GamepadDpadDown,
+                            input.pressed & PKGI_BUTTON_DOWN);
+                    io.AddKeyEvent(
+                            ImGuiKey_GamepadDpadLeft,
+                            input.pressed & PKGI_BUTTON_LEFT);
+                    io.AddKeyEvent(
+                            ImGuiKey_GamepadDpadRight,
+                            input.pressed & PKGI_BUTTON_RIGHT);
+                    io.AddKeyEvent(
+                            ImGuiKey_GamepadFaceDown,
+                            input.pressed & pkgi_ok_button());
+                }
+
+                // Universal cancel / save handlers (read pressed before zeroing)
                 if (input.pressed & pkgi_cancel_button())
                 {
                     if (gameview)
@@ -1393,8 +1406,10 @@ int main()
                 if ((input.pressed & PKGI_BUTTON_T) && config_editor)
                     config_editor->save_and_close();
 
-                input.active = 0;
+                input.active  = 0;
                 input.pressed = 0;
+                // NOTE: input.down is intentionally NOT zeroed — the log
+                // viewer's render() needs it for hold-to-scroll detection.
             }
 
             if (need_refresh)
@@ -1480,7 +1495,7 @@ int main()
                 if (log_viewer->is_closed())
                     log_viewer = nullptr;
                 else
-                    log_viewer->render();
+                    log_viewer->render(input_snapshot);
             }
 
             if (pkgi_dialog_is_open())
@@ -1488,7 +1503,8 @@ int main()
                 pkgi_do_dialog();
             }
 
-            if (!pkgi_overlay_is_open() && pkgi_dialog_input_update())
+            if (!pkgi_overlay_is_open() && !pkgi_dialog_is_open() &&
+                    pkgi_dialog_input_update())
             {
                 search_active = 1;
                 pkgi_dialog_input_get_text(search_text, sizeof(search_text));

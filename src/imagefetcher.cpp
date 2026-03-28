@@ -125,8 +125,49 @@ ImageFetcher::~ImageFetcher()
 
 vita2d_texture* ImageFetcher::get_texture()
 {
-    std::lock_guard<Mutex> lock(_mutex);
-    return _texture;
+    // ── Fast path: texture already created ─────────────────────────────────
+    {
+        std::lock_guard<Mutex> lock(_mutex);
+        if (!_upload_pending)
+            return _texture;
+    }
+
+    // ── Take pending work under lock, then create texture OUTSIDE the lock ──
+    // vita2d texture creation is only safe on the main (rendering) thread.
+    bool        do_file = false;
+    bool        do_data = false;
+    std::string path;
+    std::vector<uint8_t> data;
+
+    {
+        std::lock_guard<Mutex> lock(_mutex);
+        if (!_upload_pending)
+            return _texture; // another thread beat us (shouldn't happen)
+        _upload_pending = false;
+        if (!_pending_jpeg_path.empty())
+        {
+            do_file = true;
+            path    = std::move(_pending_jpeg_path);
+        }
+        else if (!_pending_jpeg_data.empty())
+        {
+            do_data = true;
+            data    = std::move(_pending_jpeg_data);
+        }
+    }
+
+    vita2d_texture* tex = nullptr;
+    if (do_file)
+        tex = vita2d_load_JPEG_file(path.c_str());
+    else if (do_data)
+        tex = vita2d_load_JPEG_buffer(data.data(), data.size());
+
+    {
+        std::lock_guard<Mutex> lock(_mutex);
+        _texture = tex;
+        _status  = tex ? Status::Ready : Status::Error;
+    }
+    return tex;
 }
 
 ImageFetcher::Status ImageFetcher::get_status()
@@ -145,16 +186,16 @@ void ImageFetcher::do_request()
     {
         if (pkgi_file_exists(_path.c_str()))
         {
-            std::lock_guard<Mutex> lock(_mutex);
-            // Bug 3: skip expensive load if we are already being destroyed.
-            if (_abort)
-                return;
-            _texture = vita2d_load_JPEG_file(_path.c_str());
-            if (_texture)
             {
-                _status = Status::Ready;
-                return;
+                std::lock_guard<Mutex> lock(_mutex);
+                if (_abort)
+                    return;
+                // Signal main thread to load the file; vita2d must run there.
+                _pending_jpeg_path = _path;
+                _upload_pending    = true;
+                // Status stays Pending until get_texture() creates the texture.
             }
+            return;
         }
 
         if (_url.empty())
@@ -220,17 +261,23 @@ void ImageFetcher::do_request()
         }
 
         data.resize(pos);
-        vita2d_texture* tex = nullptr;
         {
             std::lock_guard<Mutex> lock(_mutex);
             _http = nullptr;
             if (!_abort && !too_large && !data.empty())
-                tex = vita2d_load_JPEG_buffer(data.data(), data.size());
-            _texture = tex;
-            _status = tex ? Status::Ready : Status::Error;
+            {
+                // Hand JPEG bytes to main thread for safe vita2d decoding.
+                _pending_jpeg_data = data;
+                _upload_pending    = true;
+            }
+            else
+            {
+                _status = Status::Error;
+            }
         }
-        if (tex)
+        if (!data.empty() && !too_large)
         {
+            // Save JPEG to disk cache in background (no vita2d involved).
             const auto tmp_path = _path + ".tmp";
             auto image_file = pkgi_create(tmp_path);
             if (image_file)

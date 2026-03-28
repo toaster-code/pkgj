@@ -58,7 +58,7 @@ static const MenuEntry menu_entries[] = {
 
         {MenuRefresh, "Refresh", 0},
         {MenuConfigEdit, "Edit config.txt", 0},
-        {MenuLogView, "View log", 0},
+        {MenuLogView, "Log viewer", 0},
 
         {MenuShow, "Show games", 1},
         {MenuShow, "Show DLCs", 2},
