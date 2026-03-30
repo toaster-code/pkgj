@@ -76,15 +76,14 @@ case "$TARGET" in
             --build missing \
             --output-folder .
 
-        poetry run conan build ../.. \
-            -s build_type=RelWithDebInfo \
-            -s compiler=gcc \
-            -s compiler.version=12 \
-            -s compiler.libcxx=libstdc++11 \
-            --output-folder .
+        cmake ../.. \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DBUILD_SIM=ON
+
+        ninja pkgj_cli pkgj_sim
 
         echo ""
-        echo "==> Done.  Binary: ci/buildhost/pkgj_cli"
+        echo "==> Done.  Binaries: ci/buildhost/pkgj_cli  ci/buildhost/pkgj_sim"
         ;;
 
     # ------------------------------------------------------------------

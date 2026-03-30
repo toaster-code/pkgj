@@ -11,6 +11,27 @@ extern "C"
 #include "style.h"
 }
 
+#ifndef PKGI_SIMULATOR
+#include <vita2d.h>
+// vita2d_texture_get_width / _height are declared in vita2d.h
+#else
+#include <SDL2/SDL.h>
+// On Linux/simulator, vita2d_texture is opaque (reinterpreted as SDL_Texture).
+// Provide thin wrappers so the rest of gameview.cpp compiles without ifdefs.
+static inline float vita2d_texture_get_width(vita2d_texture* t)
+{
+    int w = 0;
+    if (t) SDL_QueryTexture(reinterpret_cast<SDL_Texture*>(t), nullptr, nullptr, &w, nullptr);
+    return static_cast<float>(w);
+}
+static inline float vita2d_texture_get_height(vita2d_texture* t)
+{
+    int h = 0;
+    if (t) SDL_QueryTexture(reinterpret_cast<SDL_Texture*>(t), nullptr, nullptr, nullptr, &h);
+    return static_cast<float>(h);
+}
+#endif
+
 namespace
 {
 constexpr unsigned GameViewWidth  = VITA_WIDTH  * 0.95;
@@ -21,9 +42,9 @@ constexpr unsigned GameViewHeight = VITA_HEIGHT * 0.82;
 struct ThumbSize { float w, h; };
 constexpr ThumbSize kThumbSizes[] = {
     {  0.f,   0.f}, // 0 off
-    {225.f, 237.f}, // 1 small  (width 1.5x, height 70% of 1.5x original)
-    {315.f, 331.f}, // 2 medium
-    {405.f, 426.f}, // 3 large
+    {203.f, 203.f}, // 1 small   (square, 90% of previous width)
+    {284.f, 284.f}, // 2 medium
+    {365.f, 365.f}, // 3 large
 };
 constexpr int kThumbSizeCount = 4;
 
@@ -518,7 +539,7 @@ bool GameView::is_vita_mode() const
 
 void GameView::refresh()
 {
-    LOGF("refreshing gameview");
+    LOGF("Refreshing game view");
     if (is_vita_mode())
     {
         _refood_present = pkgi_is_module_present("ref00d");

@@ -1,5 +1,6 @@
 #include "logbuffer.hpp"
 
+#include <ctime>
 #include <deque>
 #include <mutex>
 
@@ -22,6 +23,13 @@ void pkgi_log_buffer_append(const char* line)
     {
         text.pop_back();
     }
+
+    // Prepend HH:MM:SS timestamp from system clock
+    char ts[10];
+    std::time_t now = std::time(nullptr);
+    std::tm* tm_now = std::localtime(&now);
+    std::strftime(ts, sizeof(ts), "%H:%M:%S", tm_now);
+    text = std::string(ts) + " " + text;
 
     std::lock_guard<std::mutex> lock(g_log_mutex);
     g_log_lines.emplace_back(std::move(text));

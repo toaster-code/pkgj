@@ -1,9 +1,28 @@
 #include "imagefetcher.hpp"
 
-#include "curlhttp.hpp"
 #include "db.hpp"
 #include "file.hpp"
 #include "pkgi.hpp"
+#include "vitahttp.hpp"
+
+#ifndef PKGI_SIMULATOR
+#include <vita2d.h>
+#else
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+extern SDL_Renderer* g_sdl_renderer;
+static vita2d_texture* sim_load_jpeg_file(const char* path)
+{
+    SDL_Surface* s = IMG_Load(path);
+    if (!s) return nullptr;
+    SDL_Texture* t = SDL_CreateTextureFromSurface(g_sdl_renderer, s);
+    SDL_FreeSurface(s);
+    return reinterpret_cast<vita2d_texture*>(t);
+}
+#define vita2d_load_JPEG_file(p)     sim_load_jpeg_file(p)
+#define vita2d_wait_rendering_done() ((void)0)
+#define vita2d_free_texture(t)       SDL_DestroyTexture(reinterpret_cast<SDL_Texture*>(t))
+#endif
 
 #include <chrono>
 #include <fmt/format.h>
@@ -135,9 +154,7 @@ vita2d_texture* ImageFetcher::get_texture()
     // ── Take pending work under lock, then create texture OUTSIDE the lock ──
     // vita2d texture creation is only safe on the main (rendering) thread.
     bool        do_file = false;
-    bool        do_data = false;
     std::string path;
-    std::vector<uint8_t> data;
 
     {
         std::lock_guard<Mutex> lock(_mutex);
@@ -149,18 +166,21 @@ vita2d_texture* ImageFetcher::get_texture()
             do_file = true;
             path    = std::move(_pending_jpeg_path);
         }
-        else if (!_pending_jpeg_data.empty())
-        {
-            do_data = true;
-            data    = std::move(_pending_jpeg_data);
-        }
     }
 
     vita2d_texture* tex = nullptr;
     if (do_file)
+    {
         tex = vita2d_load_JPEG_file(path.c_str());
-    else if (do_data)
-        tex = vita2d_load_JPEG_buffer(data.data(), data.size());
+        if (!tex)
+        {
+            // Corrupt or invalid cached file — delete it so the next open
+            // triggers a fresh download instead of looping on the same error.
+            LOGF("vita2d_load_JPEG_file failed for {}, removing corrupt cache",
+                 path);
+            pkgi_rm(path.c_str());
+        }
+    }
 
     {
         std::lock_guard<Mutex> lock(_mutex);
@@ -210,7 +230,7 @@ void ImageFetcher::do_request()
             if (_abort)
                 return;
             _status = Status::Downloading;
-            _http = std::make_unique<CurlHttp>(&_abort);
+            _http = std::make_unique<VitaHttp>();
         }
 
         std::vector<uint8_t> data;
@@ -264,27 +284,48 @@ void ImageFetcher::do_request()
         {
             std::lock_guard<Mutex> lock(_mutex);
             _http = nullptr;
-            if (!_abort && !too_large && !data.empty())
+            if (_abort || too_large || data.empty())
             {
-                // Hand JPEG bytes to main thread for safe vita2d decoding.
-                _pending_jpeg_data = data;
+                _status = Status::Error;
+                return;
+            }
+        }
+        // Save JPEG to disk BEFORE signalling the main thread so that
+        // vita2d_load_JPEG_file is used instead of vita2d_load_JPEG_buffer.
+        // On PS Vita, vita2d_load_JPEG_buffer causes a hard system freeze
+        // when called before vita2d_load_JPEG_file has ever been invoked
+        // (the system JPEG decoder is not yet initialised).  Always going
+        // through the on-disk path avoids this entirely.
+        bool saved = false;
+        void* image_file = nullptr;
+        try
+        {
+            const auto tmp_path = _path + ".tmp";
+            image_file = pkgi_create(tmp_path);
+            pkgi_write(image_file, data.data(), data.size());
+            pkgi_close(image_file);
+            image_file = nullptr;
+            pkgi_rename(tmp_path, _path);
+            saved = true;
+        }
+        catch (const std::exception& e)
+        {
+            if (image_file)
+                pkgi_close(image_file);
+            LOGF("Failed to save cover image to {}: {}", _path, e.what());
+        }
+        {
+            std::lock_guard<Mutex> lock(_mutex);
+            if (_abort)
+                return;
+            if (saved)
+            {
+                _pending_jpeg_path = _path;
                 _upload_pending    = true;
             }
             else
             {
                 _status = Status::Error;
-            }
-        }
-        if (!data.empty() && !too_large)
-        {
-            // Save JPEG to disk cache in background (no vita2d involved).
-            const auto tmp_path = _path + ".tmp";
-            auto image_file = pkgi_create(tmp_path);
-            if (image_file)
-            {
-                pkgi_write(image_file, data.data(), data.size());
-                pkgi_close(image_file);
-                pkgi_rename(tmp_path, _path);
             }
         }
     }

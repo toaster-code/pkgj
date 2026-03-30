@@ -1,6 +1,6 @@
 #include "patchinfofetcher.hpp"
 
-#include "curlhttp.hpp"
+#include "vitahttp.hpp"
 
 #include <mutex>
 
@@ -44,7 +44,7 @@ void PatchInfoFetcher::do_request()
             std::lock_guard<Mutex> lock(_mutex);
             if (_abort)
                 return;
-            _http = std::make_unique<CurlHttp>();
+            _http = std::make_unique<VitaHttp>();
         }
         const auto patch_info =
                 pkgi_download_patch_info(_http.get(), _title_id);

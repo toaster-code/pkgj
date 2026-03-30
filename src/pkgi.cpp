@@ -25,15 +25,24 @@ extern "C"
 #include "psm.hpp"
 #include "file.hpp"
 
+#ifndef PKGI_SIMULATOR
 #include <vita2d.h>
+#endif
+
+#ifdef PKGI_SIMULATOR
+#include <SDL2/SDL.h>
+extern SDL_Texture* sim_create_font_texture(const uint32_t* px, int w, int h);
+#endif
 
 #include <fmt/format.h>
 
 #include <memory>
 #include <set>
 
+#ifndef PKGI_SIMULATOR
 #include <psp2common/npdrm.h>
 #include <psp2/io/stat.h>
+#endif
 
 #include <cstddef>
 #include <cstring>
@@ -207,7 +216,7 @@ std::string const& pkgi_get_url_from_mode(Mode mode)
 
 void pkgi_refresh_thread(void)
 {
-    LOG("starting update");
+    LOG("Checking for app updates");
     try
     {
         auto mode_count = ModeCount + (config.comppack_url.empty() ? 0 : 2);
@@ -1131,7 +1140,7 @@ void pkgi_reload()
     }
     catch (const std::exception& e)
     {
-        LOGF("error during reload: {}", e.what());
+        LOGF("Database reload failed: {}", e.what());
         pkgi_dialog_error(
                 fmt::format(
                         "failed to reload db: {}, try to refresh?", e.what())
@@ -1154,7 +1163,7 @@ void pkgi_open_db()
     }
     catch (const std::exception& e)
     {
-        LOGF("error during database open: {}", e.what());
+        LOGF("Database open failed: {}", e.what());
         throw formatEx<std::runtime_error>(
                 "DB initialization error: %s\nTry to delete them?");
     }
@@ -1163,8 +1172,10 @@ void pkgi_open_db()
 }
 }
 
-void pkgi_create_psp_rif(std::string contentid, uint8_t* rif)
+void pkgi_create_psp_rif([[maybe_unused]] std::string contentid,
+                         [[maybe_unused]] uint8_t* rif)
 {
+#ifndef PKGI_SIMULATOR
     SceNpDrmLicense license;
     memset(&license, 0x00, sizeof(SceNpDrmLicense));
     license.account_id = 0x0123456789ABCDEFLL;
@@ -1172,6 +1183,7 @@ void pkgi_create_psp_rif(std::string contentid, uint8_t* rif)
     strncpy(license.content_id, contentid.c_str(), 0x30);
 
     memcpy(rif, &license, PKGI_PSP_RIF_SIZE);
+#endif // PKGI_SIMULATOR
 }
 
 
@@ -1200,13 +1212,19 @@ void pkgi_start_download(
 {
     LOGF("[{}] {} - starting to install", item.content, item.name);
 
+#ifndef PKGI_SIMULATOR
     sceIoMkdir("ux0:bgdl", 0777);
+#else
+    pkgi_mkdirs("pkgj/bgdl");
+#endif
 
     try
     {
         // download PSM Runtime if a PSM game is requested to be installed ..
+#ifndef PKGI_SIMULATOR
         if(mode == ModePsmGames)
             pkgi_download_psm_runtime_if_needed();
+#endif
         // Just use the maximum size to be safe
         uint8_t rif[PKGI_PSM_RIF_SIZE];
         char message[256];
@@ -1214,6 +1232,7 @@ void pkgi_start_download(
             pkgi_zrif_decode(item.zrif.c_str(), rif, message, sizeof(message)))
         {
             const bool is_pspemudrm_mode = MODE_IS_PSPEMU(mode);
+#ifndef PKGI_SIMULATOR
             const bool has_psp_bgdl =
                     is_pspemudrm_mode && pkgi_is_module_present("NoPspEmuDrm_kern");
             const bool use_psp_bgdl =
@@ -1233,6 +1252,11 @@ void pkgi_start_download(
                 if (is_pspemudrm_mode) {
                     pkgi_create_psp_rif(item.content, rif);
                 }
+#else // PKGI_SIMULATOR — no bgdl / module checks; always direct download
+            [[maybe_unused]] const bool use_psp_bgdl = false;
+            if (mode == ModeGames || mode == ModeDlcs || mode == ModeDemos || mode == ModeThemes)
+            {
+#endif
                 
                 pkgi_start_bgdl(
                         mode_to_bgdl_type(mode),
@@ -1303,7 +1327,7 @@ int main()
             pkgi_dialog_error(("Download failure: " + error).c_str());
         };
 
-        LOG("started");
+        LOG("PKGj started");
 
         config = pkgi_load_config();
         pkgi_dialog_init();
@@ -1318,7 +1342,11 @@ int main()
                 std::string(pkgi_get_config_folder()) + "/annotations.db");
         pkgi_apply_annotations();
 
+#ifdef PKGI_SIMULATOR
+        pkgi_texture background = nullptr; // no embedded assets in simulator
+#else
         pkgi_texture background = pkgi_load_png(background);
+#endif
 
         if (!config.no_version_check)
             start_update_thread();
@@ -1331,6 +1359,7 @@ int main()
         // Build and load the texture atlas into a texture
         uint32_t* pixels = NULL;
         int width, height;
+#ifndef PKGI_SIMULATOR
         if (!io.Fonts->AddFontFromFileTTF(
                     "sa0:/data/font/pvf/ltn0.pvf",
                     20.0f,
@@ -1343,7 +1372,9 @@ int main()
                     0,
                     io.Fonts->GetGlyphRangesJapanese()))
             throw std::runtime_error("failed to load jpn0.pvf");
+#endif
         io.Fonts->GetTexDataAsRGBA32((uint8_t**)&pixels, &width, &height);
+#ifndef PKGI_SIMULATOR
         vita2d_texture* font_texture =
                 vita2d_create_empty_texture(width, height);
         const auto stride = vita2d_texture_get_stride(font_texture) / 4;
@@ -1354,6 +1385,10 @@ int main()
                 texture_data[y * stride + x] = pixels[y * width + x];
 
         io.Fonts->TexID = font_texture;
+#else // PKGI_SIMULATOR
+        io.Fonts->TexID = reinterpret_cast<ImTextureID>(
+                sim_create_font_texture(pixels, width, height));
+#endif // PKGI_SIMULATOR
 
         init_imgui();
 
@@ -1408,8 +1443,10 @@ int main()
 
                 input.active  = 0;
                 input.pressed = 0;
-                // NOTE: input.down is intentionally NOT zeroed — the log
-                // viewer's render() needs it for hold-to-scroll detection.
+                // input.down is NOT zeroed: sdl_backend needs it to track
+                // how long a key has been held (hold-repeat detection).
+                // Overlays consume input via input_snapshot (taken above);
+                // pkgi_do_main is inhibited by active == 0.
             }
 
             if (need_refresh)
@@ -1423,7 +1460,7 @@ int main()
                     if (item)
                         item->presence = PresenceUnknown;
                     else
-                        LOGF("couldn't find {} for refresh",
+                        LOGF("Post-download refresh: content ID {} not found in database",
                              content_to_refresh);
                     content_to_refresh.clear();
                 }
@@ -1608,7 +1645,7 @@ int main()
     }
     catch (const std::exception& e)
     {
-        LOGF("Error in main: {}", e.what());
+        LOGF("Fatal error in main loop: {}", e.what());
         state = StateError;
         pkgi_snprintf(
                 error_state, sizeof(error_state), "Fatal error: %s", e.what());
@@ -1623,6 +1660,6 @@ int main()
         pkgi_end();
     }
 
-    LOG("finished");
+    LOG("PKGj shutting down");
     pkgi_end();
 }

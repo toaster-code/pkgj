@@ -137,7 +137,7 @@ void pkgi_mkdirs(const char* ppath)
 
         char last = *ptr;
         *ptr = 0;
-        LOG("mkdir %s", path.c_str());
+        LOG("Creating directory: %s", path.c_str());
         int err = mkdir(path.c_str(), 0777);
         if (err < 0 && errno != EEXIST)
             throw std::runtime_error(fmt::format(
@@ -313,7 +313,7 @@ void pkgi_save(const std::string& path, const void* data, uint32_t size)
 
 void* pkgi_create(const std::string& path)
 {
-    LOGF("pkgi_create {}", path);
+    LOGF("Creating file: {}", path);
     int fd = open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666);
     if (fd < 0)
         throw std::runtime_error("pkgi_create failed");

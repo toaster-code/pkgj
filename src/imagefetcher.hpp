@@ -4,7 +4,13 @@
 #include "http.hpp"
 #include "thread.hpp"
 
+#ifndef PKGI_SIMULATOR
 #include <vita2d.h>
+#else
+// Forward-declare as an opaque pointer in simulator builds.
+// In sdl_backend.cpp the type is reinterpreted as SDL_Texture*.
+struct vita2d_texture;
+#endif
 
 #include <atomic>
 #include <vector>
@@ -41,11 +47,14 @@ private:
     vita2d_texture* _texture{nullptr};
     Status _status{Status::Pending};
 
-    // Pending data for main-thread texture creation
-    // Only one of the two will be non-empty at a time.
-    std::vector<uint8_t> _pending_jpeg_data; // downloaded network bytes
-    std::string          _pending_jpeg_path; // local file path ready to load
-    bool                 _upload_pending{false};
+    // Pending data for main-thread texture creation.
+    // The background thread always saves the download to disk first and then
+    // sets _pending_jpeg_path so the main thread uses vita2d_load_JPEG_file.
+    // Using vita2d_load_JPEG_buffer before vita2d_load_JPEG_file has been
+    // called causes a hard system freeze on PS Vita (JPEG decoder not
+    // initialised), so the buffer path is intentionally unused.
+    std::string _pending_jpeg_path; // local file path ready to load
+    bool        _upload_pending{false};
 
     Thread _thread;
 

@@ -13,7 +13,7 @@ AnnotationDatabase::AnnotationDatabase(const std::string& dbPath)
 
 void AnnotationDatabase::open()
 {
-    LOGF("opening annotation database {}", _dbPath);
+    LOGF("Opening annotation database: {}", _dbPath);
 
     sqlite3* raw = nullptr;
     if (sqlite3_open(_dbPath.c_str(), &raw) != SQLITE_OK)

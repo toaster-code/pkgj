@@ -19,42 +19,20 @@ void LogViewer::render(const pkgi_input& input)
     const auto lines = pkgi_log_buffer_snapshot();
     const int  n     = static_cast<int>(lines.size());
 
-    // ── Navigation ─────────────────────────────────────────────────────────────────
-    // input.pressed: single press (read before pkgi.cpp zeroes it)
-    // input.down:    held every frame
-    const int dir = (input.down & PKGI_BUTTON_UP)   ? -1
-                  : (input.down & PKGI_BUTTON_DOWN)  ? +1
-                  : 0;
-
+    // ── Navigation ────────────────────────────────────────────────────────────
+    // Use input.active — same field as pkgi_do_main — so repeat rate and
+    // initial-press delay are identical to the main game list.
     bool nav_step = false;
 
-    // Initial press fires immediately
-    if ((input.pressed & PKGI_BUTTON_UP) && n > 0)
+    if ((input.active & PKGI_BUTTON_UP) && n > 0)
     {
         _selected = std::max(0, _selected - 1);
         nav_step  = true;
-        _scroll_counter = 0;
     }
-    else if ((input.pressed & PKGI_BUTTON_DOWN) && n > 0)
+    else if ((input.active & PKGI_BUTTON_DOWN) && n > 0)
     {
         _selected = std::min(n - 1, _selected + 1);
         nav_step  = true;
-        _scroll_counter = 0;
-    }
-    else if (dir == 0)
-    {
-        _scroll_counter = 0;
-    }
-    else
-    {
-        // Repeat while held: fire every ScrollThreshold frames
-        if (++_scroll_counter >= ScrollThreshold)
-        {
-            _scroll_counter = 0;
-            if (n > 0)
-                _selected = std::max(0, std::min(_selected + dir, n - 1));
-            nav_step = true;
-        }
     }
 
     // Clamp in case log buffer shrank
