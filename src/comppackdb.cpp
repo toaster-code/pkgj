@@ -46,7 +46,7 @@ void CompPackDatabase::reopen()
     }
     catch (const std::exception& e)
     {
-        LOG("Schema migration needed: %s", e.what());
+        LOG_WARN("Schema migration needed: %s", e.what());
         SQLITE_EXEC(
                 _sqliteDb,
                 R"(DROP TABLE IF EXISTS entries)",
@@ -114,7 +114,7 @@ void CompPackDatabase::parse_entries(std::string& db_data)
             auto err = sqlite3_exec(
                     _sqliteDb.get(), "ROLLBACK", nullptr, nullptr, &errmsg);
             if (err != SQLITE_OK)
-                LOG("SQLite error during comppack save: %s", errmsg);
+                LOG_ERR("SQLite error during comppack save: %s", errmsg);
         }
     };
 

@@ -141,7 +141,7 @@ public:
         if (res < 0)
         {
             // TODO throw
-            LOG("Mutex creation failed: err=0x%08x", res);
+            LOG_ERR("Mutex creation failed: err=0x%08x", res);
         }
     }
 
@@ -151,7 +151,7 @@ public:
         if (res < 0)
         {
             // TODO assert
-            LOG("Mutex deletion failed: err=0x%08x", res);
+            LOG_ERR("Mutex deletion failed: err=0x%08x", res);
         }
     }
 
@@ -161,7 +161,7 @@ public:
         if (res < 0)
         {
             // TODO throw
-            LOG("Mutex lock failed: err=0x%08x", res);
+            LOG_ERR("Mutex lock failed: err=0x%08x", res);
         }
     }
 
@@ -183,7 +183,7 @@ public:
         if (res < 0)
         {
             // TODO throw
-            LOG("Mutex unlock failed: err=0x%08x", res);
+            LOG_ERR("Mutex unlock failed: err=0x%08x", res);
         }
     }
 
@@ -208,7 +208,7 @@ public:
         if (res < 0)
         {
             // TODO throw
-            LOG("Condition variable creation failed: err=0x%08x", res);
+            LOG_ERR("Condition variable creation failed: err=0x%08x", res);
         }
     }
 
@@ -218,7 +218,7 @@ public:
         if (res < 0)
         {
             // TODO assert
-            LOG("Condition variable deletion failed: err=0x%08x", res);
+            LOG_ERR("Condition variable deletion failed: err=0x%08x", res);
         }
     }
 
@@ -228,7 +228,7 @@ public:
         if (res < 0)
         {
             // TODO throw
-            LOG("Condition variable signal failed: err=0x%08x", res);
+            LOG_ERR("Condition variable signal failed: err=0x%08x", res);
         }
     }
 
@@ -238,7 +238,7 @@ public:
         if (res < 0)
         {
             // TODO throw
-            LOG("Condition variable wait failed: err=0x%08x", res);
+            LOG_ERR("Condition variable wait failed: err=0x%08x", res);
         }
     }
 
@@ -269,7 +269,7 @@ public:
         if (_tid < 0)
         {
             // TODO throw
-            LOG("Thread creation failed: err=0x%08x", _tid);
+            LOG_ERR("Thread creation failed: err=0x%08x", _tid);
         }
         auto entryp = new EntryPoint(std::move(entry));
         const auto res = sceKernelStartThread(_tid, sizeof(entryp), &entryp);
@@ -277,7 +277,7 @@ public:
         {
             delete entryp;
             // TODO throw
-            LOG("Thread start failed: err=0x%08x", res);
+            LOG_ERR("Thread start failed: err=0x%08x", res);
         }
     }
 
@@ -287,7 +287,7 @@ public:
         if (res < 0)
         {
             // TODO assert
-            LOG("Thread deletion failed: err=0x%08x", res);
+            LOG_ERR("Thread deletion failed: err=0x%08x", res);
         }
     }
 
@@ -298,7 +298,7 @@ public:
         if (res < 0)
         {
             // TODO assert
-            LOG("Thread join failed: err=0x%08x", res);
+            LOG_ERR("Thread join failed: err=0x%08x", res);
         }
     }
 
@@ -316,11 +316,11 @@ private:
         }
         catch (const std::exception& e)
         {
-            LOG("Thread terminated with exception: %s", e.what());
+            LOG_ERR("Thread terminated with exception: %s", e.what());
         }
         catch (...)
         {
-            LOG("Thread terminated with unknown exception");
+            LOG_ERR("Thread terminated with unknown exception");
         }
         return 0;
     }

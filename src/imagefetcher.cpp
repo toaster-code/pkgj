@@ -176,7 +176,7 @@ vita2d_texture* ImageFetcher::get_texture()
         {
             // Corrupt or invalid cached file — delete it so the next open
             // triggers a fresh download instead of looping on the same error.
-            LOGF("vita2d_load_JPEG_file failed for {}, removing corrupt cache",
+            LOGFW("vita2d_load_JPEG_file failed for {}, removing corrupt cache",
                  path);
             pkgi_rm(path.c_str());
         }
@@ -312,7 +312,7 @@ void ImageFetcher::do_request()
         {
             if (image_file)
                 pkgi_close(image_file);
-            LOGF("Failed to save cover image to {}: {}", _path, e.what());
+            LOGFW("Failed to save cover image to {}: {}", _path, e.what());
         }
         {
             std::lock_guard<Mutex> lock(_mutex);
@@ -331,7 +331,7 @@ void ImageFetcher::do_request()
     }
     catch (const std::exception& e)
     {
-        LOGF("Failed to fetch cover image: {}", e.what());
+        LOGFW("Failed to fetch cover image: {}", e.what());
         std::lock_guard<Mutex> lock(_mutex);
         _http = nullptr;
         _status = Status::Error;

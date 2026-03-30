@@ -79,11 +79,28 @@ void LogViewer::render(const pkgi_input& input)
         {
             ImGui::PushID(i);
 
-            const bool selected = (i == _selected);
-            const char* text    = lines[i].empty() ? " " : lines[i].c_str();
+            const bool       selected = (i == _selected);
+            const LogEntry&  entry    = lines[i];
+            const char*      text     = entry.text.empty() ? " " : entry.text.c_str();
 
-            // Highlight selected row without using ImGui navigation
+            // Color by level
+            ImVec4 col;
+            switch (entry.level)
+            {
+            case LogLevel::Error:
+                col = ImVec4(1.00f, 0.35f, 0.35f, 1.f);
+                break;
+            case LogLevel::Warn:
+                col = ImVec4(1.00f, 0.85f, 0.10f, 1.f);
+                break;
+            default:
+                col = ImVec4(1.00f, 1.00f, 1.00f, 1.f);
+                break;
+            }
+
+            ImGui::PushStyleColor(ImGuiCol_Text, col);
             ImGui::Selectable(text, selected, ImGuiSelectableFlags_Disabled);
+            ImGui::PopStyleColor();
 
             // Scroll the selected row into view whenever navigation occurred
             if (selected && nav_step)

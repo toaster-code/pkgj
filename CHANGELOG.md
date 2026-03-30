@@ -1,7 +1,39 @@
 # Changelog
 
 
-## 0.57-beta1
+## 0.59-beta2
+
+### New features
+
+- **Linux simulator** (`pkgj_sim`): Full SDL2 + ImGui graphical simulator for development on Linux.
+  Keyboard maps all Vita buttons; overlays (config editor, log viewer) work identically to the Vita build.
+  Build with `./build.sh host` or `-DBUILD_SIM=ON` in CMake.
+
+- **Log levels**: Every log entry is now tagged `[INFO]`, `[WARN]`, or `[ERR ]`.
+  The Log Viewer colors rows by level — red for errors, yellow for warnings, white for info.
+  New macros: `LOG_WARN`, `LOG_ERR`, `LOGFW`, `LOGFE` for explicit leveling.
+
+- **Log timestamps**: All log lines carry a `HH:MM:SS` prefix.
+
+- **Log module names**: Each log line shows the source file stem, e.g. `[downloader]`, `[pkgi]`.
+
+### Improvements
+
+- Cover image panel proportions corrected: width 1.5× original, height 70% of that, top-aligned.
+- All log messages across 17+ source files rewritten for clarity and consistency.
+- Critical failure paths (download error, DB failure, OS primitive failures, PKG integrity, install errors) now emit `[ERR ]`-level entries; recoverable conditions emit `[WARN]`.
+
+### Bug fixes
+
+- Fixed input hold-repeat broken by over-aggressive button state zeroing (`.down` is now preserved across overlay open/close).
+- Fixed Log Viewer not closing with Esc in simulator mode.
+- Fixed Config Editor and Log Viewer invisible in simulator (over-aggressive `#ifndef PKGI_SIMULATOR` guards removed).
+- Fixed `has_imgui_overlay` not including the Config Editor in simulator mode.
+- Fixed Log Viewer navigation to use `input.active` (same repeat rate as the main game list).
+
+
+## 0.59-beta1
+
 
 What's new:
 

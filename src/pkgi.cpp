@@ -1140,7 +1140,7 @@ void pkgi_reload()
     }
     catch (const std::exception& e)
     {
-        LOGF("Database reload failed: {}", e.what());
+        LOGFE("Database reload failed: {}", e.what());
         pkgi_dialog_error(
                 fmt::format(
                         "failed to reload db: {}, try to refresh?", e.what())
@@ -1163,7 +1163,7 @@ void pkgi_open_db()
     }
     catch (const std::exception& e)
     {
-        LOGF("Database open failed: {}", e.what());
+        LOGFE("Database open failed: {}", e.what());
         throw formatEx<std::runtime_error>(
                 "DB initialization error: %s\nTry to delete them?");
     }
@@ -1645,7 +1645,7 @@ int main()
     }
     catch (const std::exception& e)
     {
-        LOGF("Fatal error in main loop: {}", e.what());
+        LOGFE("Fatal error in main loop: {}", e.what());
         state = StateError;
         pkgi_snprintf(
                 error_state, sizeof(error_state), "Fatal error: %s", e.what());

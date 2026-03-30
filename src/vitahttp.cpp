@@ -170,7 +170,7 @@ void VitaHttp::abort()
     {
         const auto err = sceHttpAbortRequest(_http->req);
         if (err)
-            LOGF("HTTP abort failed: err={:#08x}", static_cast<uint32_t>(err));
+            LOGFW("HTTP abort failed: err={:#08x}", static_cast<uint32_t>(err));
     }
 }
 

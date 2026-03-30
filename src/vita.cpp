@@ -90,7 +90,7 @@ static int g_log_socket;
 
 #define PKGI_ERRNO_ENOENT (int)(0x80010000 + SCE_NET_ENOENT)
 
-void pkgi_log(const char* msg, ...)
+void pkgi_log(LogLevel level, const char* msg, ...)
 {
     char buffer[512];
 
@@ -105,7 +105,7 @@ void pkgi_log(const char* msg, ...)
         len = sizeof(buffer) - 1;
     buffer[len] = 0;
 
-    pkgi_log_buffer_append(buffer);
+    pkgi_log_buffer_append(level, buffer);
 
 #ifdef PKGI_ENABLE_LOGGING
     buffer[len] = '\n';
@@ -297,7 +297,7 @@ void pkgi_dialog_lock(void)
     int res = sceKernelLockLwMutex(&g_dialog_lock, 1, NULL);
     if (res < 0)
     {
-    LOG("Dialog mutex lock failed: err=0x%08x", res);
+    LOG_WARN("Dialog mutex lock failed: err=0x%08x", res);
     }
 }
 
@@ -306,7 +306,7 @@ void pkgi_dialog_unlock(void)
     int res = sceKernelUnlockLwMutex(&g_dialog_lock, 1);
     if (res < 0)
     {
-    LOG("Dialog mutex unlock failed: err=0x%08x", res);
+    LOG_WARN("Dialog mutex unlock failed: err=0x%08x", res);
     }
 }
 
@@ -461,7 +461,7 @@ void pkgi_dialog_input_text(const char* title, const char* text)
     int res = sceImeDialogInit(&param);
     if (res < 0)
     {
-        LOG("IME dialog initialization failed: err=0x%08x", res);
+        LOG_ERR("IME dialog initialization failed: err=0x%08x", res);
     }
     else
     {
@@ -563,7 +563,7 @@ void pkgi_start(void)
 
     if (scePromoterUtilityInit() < 0)
     {
-        LOG("Failed to initialize promoter utility");
+        LOG_ERR("Failed to initialize promoter utility");
     }
 
     sceCtrlSetSamplingMode(SCE_CTRL_MODE_ANALOG);
@@ -806,7 +806,7 @@ void pkgi_start_thread(const char* name, pkgi_thread_entry* start)
             name, &pkgi_vita_thread, 0x40, 1024 * 1024, 0, 0, NULL);
     if (id < 0)
     {
-        LOG("Failed to start thread: %s", name);
+        LOG_ERR("Failed to start thread: %s", name);
     }
     else
     {
@@ -826,7 +826,7 @@ void pkgi_lock_process(void)
         LOG("Locking Vita shell");
         if (sceShellUtilLock(SCE_SHELL_UTIL_LOCK_TYPE_PS_BTN) < 0)
         {
-            LOG("Shell lock failed");
+            LOG_WARN("Shell lock failed");
         }
     }
 }
@@ -838,7 +838,7 @@ void pkgi_unlock_process(void)
         LOG("Unlocking Vita shell");
         if (sceShellUtilUnlock(SCE_SHELL_UTIL_LOCK_TYPE_PS_BTN) < 0)
         {
-            LOG("Shell unlock failed");
+            LOG_WARN("Shell unlock failed");
         }
     }
 }
@@ -849,7 +849,7 @@ pkgi_texture pkgi_load_png_raw(const void* data, uint32_t size)
     vita2d_texture* tex = vita2d_load_PNG_buffer((const char*)data);
     if (!tex)
     {
-        LOG("Failed to load background texture");
+        LOG_WARN("Failed to load background texture");
     }
     return tex;
 }

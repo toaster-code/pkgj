@@ -27,7 +27,7 @@ extern "C"
 #define PKGI_FOLDER "pkgi"
 #define PKGI_APP_FOLDER "app"
 
-void pkgi_log(const char* msg, ...)
+void pkgi_log(LogLevel level, const char* msg, ...)
 {
     char buffer[512];
 
@@ -42,7 +42,7 @@ void pkgi_log(const char* msg, ...)
         len = sizeof(buffer) - 1;
     buffer[len] = 0;
 
-    pkgi_log_buffer_append(buffer);
+    pkgi_log_buffer_append(level, buffer);
     printf("%s\n", buffer);
 }
 

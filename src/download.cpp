@@ -1088,7 +1088,7 @@ int Download::check_integrity(const uint8_t* digest)
     LOG("Verifying PKG integrity");
     if (!pkgi_memequ(digest, check, SHA256_DIGEST_SIZE))
     {
-        LOG("PKG integrity check failed, removing head.bin and resume data");
+        LOG_ERR("PKG integrity check failed, removing head.bin and resume data");
 
         pkgi_rm(fmt::format("{}/sce_sys/package/head.bin", root).c_str());
 
@@ -1266,7 +1266,7 @@ int Download::pkgi_download(
     }
     catch (const ResumeError& e)
     {
-        LOGF("Deleting resume file");
+        LOGFE("Deleting resume file");
         try
         {
             pkgi_rm(fmt::format("{}.resume", root).c_str());
@@ -1274,7 +1274,7 @@ int Download::pkgi_download(
         }
         catch (const std::exception& e)
         {
-            LOGF("Failed to delete resume file");
+            LOGFW("Failed to delete resume file");
         }
         throw;
     }

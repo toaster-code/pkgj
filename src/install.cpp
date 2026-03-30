@@ -149,7 +149,7 @@ CompPackVersion pkgi_get_comppack_versions(const std::string& titleid)
         }
         catch (const std::exception& e)
         {
-            LOGF("Base comppack version not found: {}", e.what());
+            LOGFW("Base comppack version not found: {}", e.what());
             // return empty string if not found
             return std::string{};
         }
@@ -163,7 +163,7 @@ CompPackVersion pkgi_get_comppack_versions(const std::string& titleid)
         }
         catch (const std::exception& e)
         {
-            LOGF("Patch comppack version not found: {}", e.what());
+            LOGFW("Patch comppack version not found: {}", e.what());
             // return empty string if not found
             return std::string{};
         }

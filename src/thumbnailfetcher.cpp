@@ -121,7 +121,7 @@ void ThumbnailFetcher::do_request()
             // Timeout check
             if (steady_clock::now() - start_time > timeout)
             {
-                LOGF("thumbnail fetch timed out after {} seconds: {}", timeout.count(), _url);
+                LOGFW("thumbnail fetch timed out after {} seconds: {}", timeout.count(), _url);
                 std::lock_guard<Mutex> lock(_mutex);
                 _http = nullptr;
                 return;
@@ -148,7 +148,7 @@ void ThumbnailFetcher::do_request()
             if (pos > MAX_SIZE_BYTES)
             {
                 too_large = true;
-                LOGF("thumbnail exceeds {} KB, aborting download: {}",
+                LOGFW("thumbnail exceeds {} KB, aborting download: {}",
                      MAX_SIZE_BYTES / 1024,
                      _url);
                 break;
@@ -186,7 +186,7 @@ void ThumbnailFetcher::do_request()
     }
     catch (const std::exception& e)
     {
-        LOGF("ThumbnailFetcher error: {}", e.what());
+        LOGFW("ThumbnailFetcher error: {}", e.what());
         std::lock_guard<Mutex> lock(_mutex);
         _http = nullptr;
     }
