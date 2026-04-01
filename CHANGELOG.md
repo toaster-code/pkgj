@@ -28,8 +28,7 @@
 - Fixed input hold-repeat broken by over-aggressive button state zeroing (`.down` is now preserved across overlay open/close).
 - Fixed Log Viewer not closing with Esc in simulator mode.
 - Fixed Config Editor and Log Viewer invisible in simulator (over-aggressive `#ifndef PKGI_SIMULATOR` guards removed).
-- Fixed `has_imgui_overlay` not including the Config Editor in simulator mode.
-- Fixed Log Viewer navigation to use `input.active` (same repeat rate as the main game list).
+- Fixed `has_imgui_overlay` not including the Config Editor in simulator mode.- Fixed race / deadlock during rapid GameView open/close by refactoring `ImageFetcher` to share a single global worker slot (`WorkerSlot::image_worker()`), avoid per-instance blocking joins, and prevent duplicate concurrent downloads.- Fixed Log Viewer navigation to use `input.active` (same repeat rate as the main game list).
 
 
 ## 0.59-beta1

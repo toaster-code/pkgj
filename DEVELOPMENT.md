@@ -305,5 +305,8 @@ PSVITAIP=192.168.1.x cmake --build . --target send
 | `src/gameview.hpp` | **Modified** | Added `AnnotationDatabase*` to constructor; added private members `_annotationDb`, `_annotation`, `_comment_buf[512]`, `_annotation_dirty` |
 | `src/gameview.cpp` | **Modified** | Constructor loads saved annotation into working copy; new **Personal Notes** UI section in `render()` |
 | `src/pkgi.cpp` | **Modified** | Added `annotation_db` global; `pkgi_apply_annotations()` called after every `configure_db()`; flag symbol prefix in list draw loop; `annotation_db` passed to `GameView` constructor; forward declaration of `pkgi_apply_annotations()` added for strict compiler compatibility |
+| `src/workerpool.hpp` | **New** | Added single global worker slot abstraction; `try_submit(task_id, fn)` avoids duplicate/parallel fetch tasks |
+| `src/imagefetcher.hpp` | **Modified** | Reworked to use `WorkerSlot::image_worker()`, state machine via `_submitted`, `_result`, and `ImageFetchResult` instead of per-instance thread + mutex/abort |
+| `src/imagefetcher.cpp` | **Modified** | `ImageFetcher::_try_submit()` submits network+disk work to worker slot; `get_status()` and `get_texture()` process result asynchronously and safely on main thread |
 | `cross.cmake` | **Modified** | Added `src/annotationdb.cpp` to the Vita executable source list |
 | `host.cmake` | **Modified** | Added `src/annotationdb.cpp` to the `pkgj_cli` source list |

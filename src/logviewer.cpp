@@ -41,6 +41,9 @@ void LogViewer::render(const pkgi_input& input)
     else
         _selected = std::max(0, std::min(_selected, n - 1));
 
+    // Inverted order: index 0 is newest entry (top of viewport).
+    // _selected is still in [0, n-1], where 0 means newest.
+    
     // ── Window ────────────────────────────────────────────────────────────────
     ImGui::SetNextWindowPos(
             ImVec2((VITA_WIDTH  - ViewerW) / 2.f,
@@ -79,8 +82,9 @@ void LogViewer::render(const pkgi_input& input)
         {
             ImGui::PushID(i);
 
+            const int        idx      = n - 1 - i; // newest first
             const bool       selected = (i == _selected);
-            const LogEntry&  entry    = lines[i];
+            const LogEntry&  entry    = lines[idx];
             const char*      text     = entry.text.empty() ? " " : entry.text.c_str();
 
             // Color by level

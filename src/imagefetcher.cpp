@@ -3,7 +3,8 @@
 #include "db.hpp"
 #include "file.hpp"
 #include "pkgi.hpp"
-#include "vitahttp.hpp"
+#include "curlhttp.hpp"
+#include "log.hpp"
 
 #ifndef PKGI_SIMULATOR
 #include <vita2d.h>
@@ -26,7 +27,6 @@ static vita2d_texture* sim_load_jpeg_file(const char* path)
 
 #include <chrono>
 #include <fmt/format.h>
-#include <mutex>
 
 namespace
 {
@@ -55,7 +55,7 @@ std::string get_store_image_url(DbItem* item)
             language = "ko";
             country_abbv = "KR";
         }
-        else if (region.compare("HP2005"))
+        else if (region.compare("HP2005") == 0)
         {
             language = "en";
         }
@@ -110,230 +110,214 @@ void ensure_image_folder(const Config* config)
 }
 
 ImageFetcher::ImageFetcher(const Config* config, DbItem* item)
-    : _mutex("image_fetcher_mutex")
-    , _path(get_image_path(config, item))
+    : _path(get_image_path(config, item))
     , _url(get_image_url(config, item))
-    , _thread("image_fetcher", [this] { do_request(); })
 {
     ensure_image_folder(config);
+    // Download is NOT started here.  get_status() / get_texture() drive
+    // _try_submit() every frame until the WorkerSlot accepts the task.
 }
 
 ImageFetcher::~ImageFetcher()
 {
-    Http* http;
-    {
-        std::lock_guard<Mutex> lock(_mutex);
-        _abort = true;
-        http = _http.get();
-    }
-    if (http)
-        http->abort();
-    _thread.join();
-    // Wait for any in-flight GPU frame to finish before releasing the texture.
-    // vita2d queues draw commands asynchronously; the destructor can run right
-    // after render() while the GPU is still reading this texture. Without the
-    // wait, vita2d_free_texture triggers a GPU driver crash.
-    // The stall is at most one frame (~16 ms) and only occurs when the user
-    // closes the game view — not on every frame.
+    // The worker thread is owned by the global WorkerSlot singleton and
+    // runs to natural completion — we never block here.
+    // We simply drop _result; if the worker is still writing to it the
+    // shared_ptr keeps it alive until the worker releases its own ref.
     if (_texture)
     {
+        // Wait for any in-flight GPU frame before freeing the texture.
+        // vita2d queues draw commands asynchronously; the destructor can
+        // run right after render() while the GPU is still reading this
+        // texture.  Without the wait, vita2d_free_texture triggers a GPU
+        // driver crash.  The stall is at most one frame (~16 ms) and only
+        // occurs when the user closes the game view.
         vita2d_wait_rendering_done();
         vita2d_free_texture(_texture);
     }
 }
 
-vita2d_texture* ImageFetcher::get_texture()
+// ── _try_submit ──────────────────────────────────────────────────────────────
+// Called every frame (via get_status) until the WorkerSlot accepts the task.
+void ImageFetcher::_try_submit()
 {
-    // ── Fast path: texture already created ─────────────────────────────────
+    // ── Fast path: file already on disc ──────────────────────────────────
+    // No network I/O needed — signal the main thread to load it directly.
+    if (pkgi_file_exists(_path.c_str()))
     {
-        std::lock_guard<Mutex> lock(_mutex);
-        if (!_upload_pending)
-            return _texture;
+        _pending_jpeg_path = _path;
+        _upload_pending    = true;
+        _submitted         = true;
+        return; // status stays Pending until get_texture() builds the texture
     }
 
-    // ── Take pending work under lock, then create texture OUTSIDE the lock ──
-    // vita2d texture creation is only safe on the main (rendering) thread.
-    bool        do_file = false;
-    std::string path;
-
+    if (_url.empty())
     {
-        std::lock_guard<Mutex> lock(_mutex);
-        if (!_upload_pending)
-            return _texture; // another thread beat us (shouldn't happen)
-        _upload_pending = false;
-        if (!_pending_jpeg_path.empty())
-        {
-            do_file = true;
-            path    = std::move(_pending_jpeg_path);
-        }
+        _status    = Status::Error;
+        _submitted = true;
+        return;
     }
 
-    vita2d_texture* tex = nullptr;
-    if (do_file)
+    // ── Slow path: submit download to the global WorkerSlot ───────────────
+    // All data captured by VALUE — the lambda must not reference 'this'.
+    // If ImageFetcher is destroyed before the worker finishes, the
+    // shared_ptr keeps ImageFetchResult alive until both sides drop it.
+    auto result = std::make_shared<ImageFetchResult>();
+    const std::string path = _path;
+    const std::string url  = _url;
+
+    if (!WorkerSlot::image_worker().try_submit(
+                _path, // task_id = file path (duplicate detection)
+                [result, path, url]()
+                {
+                    using namespace std::chrono;
+                    const auto t0      = steady_clock::now();
+                    const auto timeout = seconds(8);
+
+                    auto done_error = [&]()
+                    {
+                        result->error = true;
+                        result->ready.store(true, std::memory_order_release);
+                    };
+                    auto done_ok = [&](std::string p)
+                    {
+                        result->error = false;
+                        result->path  = std::move(p);
+                        result->ready.store(true, std::memory_order_release);
+                    };
+
+                    // ── Network ───────────────────────────────────────────
+                    // CurlHttp uses libcurl (TLS 1.2 + ECDHE ciphers).
+                    // VitaHttp (sceHttp) lacks elliptic-curve support and
+                    // fails on modern HTTPS servers — curl is used instead.
+                    CurlHttp http;
+                    try { http.start(url, 0); }
+                    catch (const std::exception& e)
+                    {
+                        LOGFW("[ImageFetcher] HTTP start failed for {}: {}",
+                              path, e.what());
+                        done_error(); return;
+                    }
+
+                    if (http.get_status() == 404) { done_error(); return; }
+
+                    std::vector<uint8_t> data;
+                    data.reserve(32 * 1024);
+                    size_t pos       = 0;
+                    bool   too_large = false;
+
+                    while (true)
+                    {
+                        if (steady_clock::now() - t0 > timeout)
+                            { done_error(); return; }
+
+                        if (pos == data.size())
+                            data.resize(pos + 4096);
+
+                        int64_t n = 0;
+                        try
+                        {
+                            n = http.read(
+                                    data.data() + pos, data.size() - pos);
+                        }
+                        catch (const std::exception& e)
+                        {
+                            LOGFW("[ImageFetcher] HTTP read failed for {}: {}",
+                                  path, e.what());
+                            done_error(); return;
+                        }
+
+                        if (n == 0) break;
+                        pos += static_cast<size_t>(n);
+                        if (pos > ImageFetcher::MAX_SIZE_BYTES)
+                            { too_large = true; break; }
+                    }
+
+                    if (too_large || pos == 0) { done_error(); return; }
+                    data.resize(pos);
+
+                    // ── Save ──────────────────────────────────────────────
+                    // Write to .tmp then rename so the file is never partial.
+                    void* f = nullptr;
+                    try
+                    {
+                        const std::string tmp = path + ".tmp";
+                        f = pkgi_create(tmp);
+                        pkgi_write(f, data.data(), data.size());
+                        pkgi_close(f); f = nullptr;
+                        pkgi_rename(tmp, path);
+                        done_ok(path);
+                    }
+                    catch (const std::exception& e)
+                    {
+                        if (f) pkgi_close(f);
+                        LOGFW("[ImageFetcher] Failed to save {} : {}",
+                              path, e.what());
+                        done_error();
+                    }
+                }))
     {
-        tex = vita2d_load_JPEG_file(path.c_str());
-        if (!tex)
-        {
-            // Corrupt or invalid cached file — delete it so the next open
-            // triggers a fresh download instead of looping on the same error.
-            LOGFW("vita2d_load_JPEG_file failed for {}, removing corrupt cache",
-                 path);
-            pkgi_rm(path.c_str());
-        }
+        // Slot is busy — keep _submitted = false and retry next frame.
+        return;
     }
 
-    {
-        std::lock_guard<Mutex> lock(_mutex);
-        _texture = tex;
-        _status  = tex ? Status::Ready : Status::Error;
-    }
-    return tex;
+    _result    = std::move(result);
+    _submitted = true;
+    _status    = Status::Downloading;
 }
 
+// ── get_status ───────────────────────────────────────────────────────────────
 ImageFetcher::Status ImageFetcher::get_status()
 {
-    std::lock_guard<Mutex> lock(_mutex);
+    // Attempt submission every frame until the slot accepts the task.
+    if (!_submitted)
+        _try_submit();
+
+    // Check if the slow-path worker has finished.
+    if (_result && _result->ready.load(std::memory_order_acquire))
+    {
+        if (_result->error || _result->path.empty())
+        {
+            _status = Status::Error;
+        }
+        else
+        {
+            // Signal get_texture() to create the vita2d texture on the
+            // main thread.  Status stays Pending until that happens.
+            _pending_jpeg_path = std::move(_result->path);
+            _upload_pending    = true;
+        }
+        _result.reset(); // release shared ownership
+    }
+
     return _status;
 }
 
-void ImageFetcher::do_request()
+// ── get_texture ──────────────────────────────────────────────────────────────
+vita2d_texture* ImageFetcher::get_texture()
 {
-    using namespace std::chrono;
-    const auto start_time = steady_clock::now();
-    const auto timeout = seconds(8);
+    // Process any pending worker result first.
+    get_status();
 
-    try
+    if (!_upload_pending)
+        return _texture;
+
+    // Consume the pending path and create the vita2d texture.
+    // vita2d_load_JPEG_file must run on the main (render) thread.
+    _upload_pending = false;
+    const std::string path = std::move(_pending_jpeg_path);
+
+    vita2d_texture* tex = vita2d_load_JPEG_file(path.c_str());
+    if (!tex)
     {
-        if (pkgi_file_exists(_path.c_str()))
-        {
-            {
-                std::lock_guard<Mutex> lock(_mutex);
-                if (_abort)
-                    return;
-                // Signal main thread to load the file; vita2d must run there.
-                _pending_jpeg_path = _path;
-                _upload_pending    = true;
-                // Status stays Pending until get_texture() creates the texture.
-            }
-            return;
-        }
-
-        if (_url.empty())
-        {
-            std::lock_guard<Mutex> lock(_mutex);
-            _status = Status::Error;
-            return;
-        }
-
-        {
-            std::lock_guard<Mutex> lock(_mutex);
-            if (_abort)
-                return;
-            _status = Status::Downloading;
-            _http = std::make_unique<VitaHttp>();
-        }
-
-        std::vector<uint8_t> data;
-        data.reserve(32 * 1024);
-        _http->start(_url, 0);
-        if (_http->get_status() == 404)
-        {
-            std::lock_guard<Mutex> lock(_mutex);
-            _http = nullptr;
-            _status = Status::Error;
-            return;
-        }
-
-        size_t pos = 0;
-        bool too_large = false;
-        while (true)
-        {
-            if (steady_clock::now() - start_time > timeout)
-            {
-                std::lock_guard<Mutex> lock(_mutex);
-                _http = nullptr;
-                _status = Status::Error;
-                return;
-            }
-
-            {
-                std::lock_guard<Mutex> lock(_mutex);
-                if (_abort)
-                {
-                    _http = nullptr;
-                    return;
-                }
-            }
-
-            if (pos == data.size())
-                data.resize(pos + 4096);
-
-            const auto read = _http->read(data.data() + pos, data.size() - pos);
-            if (read == 0)
-                break;
-            pos += read;
-
-            if (pos > MAX_SIZE_BYTES)
-            {
-                too_large = true;
-                break;
-            }
-        }
-
-        data.resize(pos);
-        {
-            std::lock_guard<Mutex> lock(_mutex);
-            _http = nullptr;
-            if (_abort || too_large || data.empty())
-            {
-                _status = Status::Error;
-                return;
-            }
-        }
-        // Save JPEG to disk BEFORE signalling the main thread so that
-        // vita2d_load_JPEG_file is used instead of vita2d_load_JPEG_buffer.
-        // On PS Vita, vita2d_load_JPEG_buffer causes a hard system freeze
-        // when called before vita2d_load_JPEG_file has ever been invoked
-        // (the system JPEG decoder is not yet initialised).  Always going
-        // through the on-disk path avoids this entirely.
-        bool saved = false;
-        void* image_file = nullptr;
-        try
-        {
-            const auto tmp_path = _path + ".tmp";
-            image_file = pkgi_create(tmp_path);
-            pkgi_write(image_file, data.data(), data.size());
-            pkgi_close(image_file);
-            image_file = nullptr;
-            pkgi_rename(tmp_path, _path);
-            saved = true;
-        }
-        catch (const std::exception& e)
-        {
-            if (image_file)
-                pkgi_close(image_file);
-            LOGFW("Failed to save cover image to {}: {}", _path, e.what());
-        }
-        {
-            std::lock_guard<Mutex> lock(_mutex);
-            if (_abort)
-                return;
-            if (saved)
-            {
-                _pending_jpeg_path = _path;
-                _upload_pending    = true;
-            }
-            else
-            {
-                _status = Status::Error;
-            }
-        }
+        // Corrupt or unreadable cache file — delete it so the next open
+        // triggers a fresh download instead of looping on the same error.
+        LOGFW("[ImageFetcher] vita2d_load_JPEG_file failed for {}, removing",
+              path);
+        pkgi_rm(path.c_str());
     }
-    catch (const std::exception& e)
-    {
-        LOGFW("Failed to fetch cover image: {}", e.what());
-        std::lock_guard<Mutex> lock(_mutex);
-        _http = nullptr;
-        _status = Status::Error;
-    }
+
+    _texture = tex;
+    _status  = tex ? Status::Ready : Status::Error;
+    return tex;
 }

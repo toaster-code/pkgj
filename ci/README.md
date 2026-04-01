@@ -99,11 +99,11 @@ The main loop in `pkgi.cpp` runs a state machine (StateMain, StateRefreshing, St
 
 - **`patchinfo.cpp` / `patchinfo.hpp` / `patchinfofetcher.cpp` / `patchinfofetcher.hpp`**: Patch information fetching. `PatchInfo` struct, `PatchInfoFetcher` class.
 
-- **`imagefetcher.cpp` / `imagefetcher.hpp`**: Image downloading/caching, likely for game icons.
+- **`imagefetcher.cpp` / `imagefetcher.hpp`**: Image downloading/caching (game cover).
 
 - **`filedownload.cpp` / `filedownload.hpp`**: File download utilities.
 
-- **`cli.cpp`**: Command-line interface? Possibly unused or for debugging.
+- **`cli.cpp`**: Command-line interface for debugging.
 
 - **`simulator.cpp`**: Simulator mode, perhaps for PC testing.
 
@@ -133,7 +133,7 @@ Built with CMake and Conan for VitaSDK. Dependencies include Vita2D, ImGui, SQLi
 
 ## Differences from Original blastrock/pkgj
 
-This fork (toaster-code/pkgj) may include enhancements like improved UI, additional modes, or bug fixes. Specific changes not detailed here; refer to commit history for modifications.
+This fork include enhancements like improved UI, additional modes, some bug fixes and probably new bugs. refer to commit history for modifications.
 
 ## Usage
 

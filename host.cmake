@@ -61,6 +61,7 @@ if(BUILD_SIM)
     src/filehttp.cpp
     src/gameview.cpp
     src/imagefetcher.cpp
+    src/curlhttp.cpp
     src/thumbnailfetcher.cpp
     src/logbuffer.cpp
     src/logviewer.cpp
