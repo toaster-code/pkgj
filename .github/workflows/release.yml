@@ -152,24 +152,9 @@ jobs:
           if [[ "$TAG" == *"beta"* || "$TAG" == *"alpha"* || "$TAG" == *"rc"* ]]; then
             PRERELEASE_FLAG="--prerelease"
           fi
-
-          RELEASE_BODY=$(cat <<'EOF'
-## PS Vita
-- pkgj-vita-${TAG}.vpk (PS Vita)
-
-## Host Linux
-- pkgj-cli-${TAG} (CLI, command line)
-- pkgj-sim-${TAG} (Graphical simulator)
-
-## Notes
-- Use `pkgj-vita` on PS Vita devices.
-- Use `pkgj-cli` and `pkgj-sim` on Linux hosts.
-EOF
-)
-
           gh release create "$TAG" \
             --title "Release $TAG" \
-            --notes "$RELEASE_BODY" \
+            --generate-notes \
             $PRERELEASE_FLAG \
             "pkgj-vita/pkgj.vpk#pkgj-${TAG}.vpk" \
             "pkgj-cli/pkgj_cli#pkgj_cli-${TAG}" \
