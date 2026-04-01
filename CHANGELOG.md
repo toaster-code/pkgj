@@ -9,6 +9,11 @@
   Keyboard maps all Vita buttons; overlays (config editor, log viewer) work identically to the Vita build.
   Build with `./build.sh host` or `-DBUILD_SIM=ON` in CMake.
 
+### Note
+
+- Skipped version 0.59 full to avoid conflicts with releases from other contributors (those may be merged in the future).
+
+
 - **Log levels**: Every log entry is now tagged `[INFO]`, `[WARN]`, or `[ERR ]`.
   The Log Viewer colors rows by level — red for errors, yellow for warnings, white for info.
   New macros: `LOG_WARN`, `LOG_ERR`, `LOGFW`, `LOGFE` for explicit leveling.
