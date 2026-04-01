@@ -27,6 +27,8 @@ class VitasdkToolchainConan(ConanFile):
             "libpng",
             "libjpeg-turbo",
             "taihen",
+            "openssl",
+            "zstd",
             "curl",
         ]
         for lib in additional_libs:
