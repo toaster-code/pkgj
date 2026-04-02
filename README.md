@@ -43,7 +43,7 @@ pkgj is shipped with valid default URLs. If you wish to change some settings, th
 | `url_psp_dlcs <URL>` | The URL of the PSP DLC list |
 | `url_psx_games <URL>` | The URL of the PSX game list |
 | `url_comppack <URL>` | The URL of the PS Vita compatibility pack list |
-| `install_psp_as_pbp 1` | Install PSP games as EBOOT.EBP files instead of ISO files (see Q&A) |
+| ~~`install_psp_as_pbp 1`~~ |~~Install PSP games as EBOOT.EBP files instead of ISO files (see Q&A)~~|
 | `install_psp_psx_location uma0:` | Install PSP and PSX games on `uma0:` |
 | `no_version_check 1` | Do not check for update when starting PKGj |
 
