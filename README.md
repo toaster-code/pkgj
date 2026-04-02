@@ -68,12 +68,9 @@ pkgj is shipped with valid default URLs. If you wish to change some settings, th
 
     Installing PSP games as EBOOT files is possible. It allows to install games faster and make them take less space. However, you will need to install the [npdrm_free][] plugin to make them work.
 
-    To install PSP games as EBOOT files, just add the following line to your config:
-    ```
-    install_psp_as_pbp 1
-    ```
+    To install PSP games as EBOOT files, ~~just add the following line to your config:```    install_psp_as_pbp 1    ```~~ choose install as EBOOT from UI.
 
-    If you want to switch back to the other mode, simply remove the line. Writing 0 is not sufficient.
+    ~~If you want to switch back to the other mode, simply remove the line. Writing 0 is not sufficient.~~
 
 5. I can't play PSP games, it says "The game could not be started (80010087)".
 
