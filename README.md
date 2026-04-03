@@ -141,17 +141,17 @@ puff.h and puff.c files are under [zlib][] license.
 [Adrenaline]: https://github.com/TheOfficialFloW/Adrenaline
 [zrif_online_converter]: https://rawgit.com/mmozeiko/pkg2zip/online/zrif.html
 [pkg_dec]: https://github.com/weaknespase/PkgDecrypt
-[pkg_releases]: https://github.com/blastrock/pkgj/releases
+[pkg_releases]: https://github.com/toaster-code/pkgj/releases
 [vitasdk]: https://vitasdk.org/
 [libvita2d]: https://github.com/xerpi/libvita2d
 [PSDLE]: https://repod.github.io/psdle/
 [socat]: http://www.dest-unreach.org/socat/
 [zlib]: https://www.zlib.net/zlib_license.html
-[pkgj_downloads]: https://github.com/blastrock/pkgj/releases
-[pkgj_latest]: https://github.com/blastrock/pkgj/releases/latest
-[pkgj_license]: https://github.com/blastrock/pkgj/blob/master/LICENSE
-[img_downloads]: https://img.shields.io/github/downloads/blastrock/pkgj/total.svg?maxAge=3600
-[img_latest]: https://img.shields.io/github/release/blastrock/pkgj.svg?maxAge=3600
-[img_license]: https://img.shields.io/github/license/blastrock/pkgj.svg?maxAge=2592000
+[pkgj_downloads]: https://github.com/toaster-code/pkgj/releases
+[pkgj_latest]: https://github.com/toaster-code/pkgj/releases/latest
+[pkgj_license]: https://github.com/toaster-code/pkgj/blob/master/LICENSE
+[img_downloads]: https://img.shields.io/github/downloads/toaster-code/pkgj/total.svg?maxAge=3600
+[img_latest]: https://img.shields.io/github/release/toaster-code/pkgj.svg?maxAge=3600
+[img_license]: https://img.shields.io/github/license/toaster-code/pkgj.svg?maxAge=2592000
 
 :)
