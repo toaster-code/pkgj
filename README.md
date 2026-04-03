@@ -47,7 +47,7 @@ pkgj is shipped with valid default URLs. If you wish to change some settings, th
 | `install_psp_psx_location uma0:` | Install PSP and PSX games on `uma0:` |
 | `no_version_check 1` | Do not check for update when starting PKGj |
 
-* This is now obsolete. User may choose what he want in the gameview.
+[*] This is now obsolete. User may choose what he want in the gameview.
 # Q&A
 
 1. Where to remove interrupted/failed downloads to free up the space(Only PSV Updates/PSX/PSP games)?
