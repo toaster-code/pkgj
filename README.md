@@ -1,3 +1,6 @@
+# Cleaning up commits.
+NOTE: I shall clean up the commits, maybe refork from base to allow proper PR to a more active repo.
+
 # pkgj
 
 [![Downloads][img_downloads]][pkgj_downloads] [![Release][img_latest]][pkgj_latest] [![License][img_license]][pkgj_license]
